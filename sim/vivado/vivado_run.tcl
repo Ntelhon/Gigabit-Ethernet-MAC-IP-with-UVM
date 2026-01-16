@@ -205,11 +205,26 @@ puts "Elapsed Time: $elapsed seconds"
 puts "Log Dir:      $log_dir"
 
 # Copy log files to results directory
+# simulate.log contains simulation (UVM) output
 if {[file exists "$work_dir/${project_name}.sim/sim_1/behav/xsim/simulate.log"]} {
     file copy -force \
         "$work_dir/${project_name}.sim/sim_1/behav/xsim/simulate.log" \
         "$log_dir/simulate.log"
     puts "Simulation log: $log_dir/simulate.log"
+}
+
+# elaborate.log contains compilation output
+if {[file exists "$work_dir/${project_name}.sim/sim_1/behav/xsim/elaborate.log"]} {
+    file copy -force \
+        "$work_dir/${project_name}.sim/sim_1/behav/xsim/elaborate.log" \
+        "$log_dir/elaborate.log"
+}
+
+# xvlog.log contains analysis output  
+if {[file exists "$work_dir/${project_name}.sim/sim_1/behav/xsim/xvlog.log"]} {
+    file copy -force \
+        "$work_dir/${project_name}.sim/sim_1/behav/xsim/xvlog.log" \
+        "$log_dir/compile.log"
 }
 
 if {$enable_waves} {
@@ -224,6 +239,10 @@ puts "Checking results..."
 
 # Parse log for UVM results
 set log_file "$log_dir/simulate.log"
+set result_status "UNKNOWN"
+set err_count 0
+set warn_count 0
+
 if {[file exists $log_file]} {
     set fp [open $log_file r]
     set log_content [read $fp]
@@ -231,14 +250,17 @@ if {[file exists $log_file]} {
     
     # Check for test pass/fail
     if {[regexp {TEST PASSED} $log_content]} {
+        set result_status "PASSED"
         puts "=============================================="
         puts "       *** TEST PASSED ***"
         puts "=============================================="
     } elseif {[regexp {TEST FAILED} $log_content]} {
+        set result_status "FAILED"
         puts "=============================================="
         puts "       *** TEST FAILED ***"
         puts "=============================================="
     } elseif {[regexp {UVM_FATAL} $log_content]} {
+        set result_status "FATAL"
         puts "=============================================="
         puts "       *** TEST FAILED (UVM_FATAL) ***"
         puts "=============================================="
@@ -249,13 +271,44 @@ if {[file exists $log_file]} {
     }
     
     # Extract error/warning counts
-    if {[regexp {UVM_ERROR\s*:\s*(\d+)} $log_content match err_count]} {
+    if {[regexp {UVM_ERROR\s*:\s*(\d+)} $log_content match cnt]} {
+        set err_count $cnt
         puts "UVM Errors:   $err_count"
     }
-    if {[regexp {UVM_WARNING\s*:\s*(\d+)} $log_content match warn_count]} {
+    if {[regexp {UVM_WARNING\s*:\s*(\d+)} $log_content match cnt]} {
+        set warn_count $cnt
         puts "UVM Warnings: $warn_count"
     }
 }
+
+#-------------------------------------------------------------------------------
+# Write Summary File
+#-------------------------------------------------------------------------------
+set summary_file "$log_dir/summary.txt"
+set fp [open $summary_file w]
+puts $fp "==============================================================================="
+puts $fp "Test Summary"
+puts $fp "==============================================================================="
+puts $fp "Test Name:    $test_name"
+puts $fp "Result:       $result_status"
+puts $fp "UVM Errors:   $err_count"
+puts $fp "UVM Warnings: $warn_count"
+puts $fp "Elapsed Time: $elapsed seconds"
+puts $fp "Seed:         $random_seed"
+puts $fp "Verbosity:    $verbosity"
+puts $fp "==============================================================================="
+puts $fp ""
+puts $fp "Output Files:"
+puts $fp "  simulate.log  - Raw simulation output (includes xsim messages)"
+puts $fp "  uvm_output.log - Clean UVM messages only"
+puts $fp "  compile.log   - Compilation/analysis output"
+puts $fp "  elaborate.log - Elaboration output"
+if {$enable_waves} {
+    puts $fp "  ${test_name}.wdb - Waveform database"
+}
+puts $fp "==============================================================================="
+close $fp
+puts "Summary:        $log_dir/summary.txt"
 
 #-------------------------------------------------------------------------------
 # Open GUI (Optional)

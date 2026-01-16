@@ -505,3 +505,110 @@ class mac_reset_during_traffic_seq extends mac_virtual_sequence_base;
     endtask
 
 endclass : mac_reset_during_traffic_seq
+
+
+//==============================================================================
+// Sequence: mac_reg_verify_seq
+// Description: Verify register values after initialization
+//==============================================================================
+class mac_reg_verify_seq extends mac_virtual_sequence_base;
+
+    `uvm_object_utils(mac_reg_verify_seq)
+    
+    bit [47:0] expected_mac_addr;
+    int errors = 0;
+
+    function new(string name = "mac_reg_verify_seq");
+        super.new(name);
+    endfunction
+
+    virtual task body();
+        bit [31:0] read_data;
+        bit [31:0] expected_data;
+        
+        `uvm_info("SEQ", "Verifying register configuration", UVM_MEDIUM)
+        
+        // Verify Control Register (0x00) - TX/RX enabled
+        read_reg(32'h00, read_data);
+        expected_data = 32'h0000_0003;  // TX_EN and RX_EN set
+        if ((read_data & 32'h0000_0003) == expected_data) begin
+            `uvm_info("SEQ", $sformatf("  Control register verified: 0x%08h", read_data), UVM_MEDIUM)
+        end else begin
+            `uvm_error("SEQ", $sformatf("  Control register mismatch: expected 0x%08h, got 0x%08h", 
+                       expected_data, read_data))
+            errors++;
+        end
+        
+        // Verify MAC Address Low Register (0x08)
+        read_reg(32'h08, read_data);
+        expected_data = expected_mac_addr[31:0];
+        if (read_data == expected_data) begin
+            `uvm_info("SEQ", $sformatf("  MAC address low verified: 0x%08h", read_data), UVM_MEDIUM)
+        end else begin
+            `uvm_error("SEQ", $sformatf("  MAC address low mismatch: expected 0x%08h, got 0x%08h", 
+                       expected_data, read_data))
+            errors++;
+        end
+        
+        // Verify MAC Address High Register (0x0C)
+        read_reg(32'h0C, read_data);
+        expected_data = {16'h0, expected_mac_addr[47:32]};
+        if (read_data == expected_data) begin
+            `uvm_info("SEQ", $sformatf("  MAC address high verified: 0x%08h", read_data), UVM_MEDIUM)
+        end else begin
+            `uvm_error("SEQ", $sformatf("  MAC address high mismatch: expected 0x%08h, got 0x%08h", 
+                       expected_data, read_data))
+            errors++;
+        end
+        
+    endtask
+
+endclass : mac_reg_verify_seq
+
+
+//==============================================================================
+// Sequence: mac_counter_verify_seq
+// Description: Verify frame counters
+//==============================================================================
+class mac_counter_verify_seq extends mac_virtual_sequence_base;
+
+    `uvm_object_utils(mac_counter_verify_seq)
+    
+    int expected_tx_count;
+    int expected_rx_count;
+
+    function new(string name = "mac_counter_verify_seq");
+        super.new(name);
+    endfunction
+
+    virtual task body();
+        bit [31:0] tx_count, rx_count;
+        
+        // Read TX frame counter (0x10)
+        read_reg(32'h10, tx_count);
+        
+        // Read RX frame counter (0x14)
+        read_reg(32'h14, rx_count);
+        
+        `uvm_info("SEQ", $sformatf("  TX frame counter: %0d (expected: %0d)", tx_count, expected_tx_count), UVM_MEDIUM)
+        `uvm_info("SEQ", $sformatf("  RX frame counter: %0d (expected: %0d)", rx_count, expected_rx_count), UVM_MEDIUM)
+        
+        // Verify TX counter
+        if (tx_count == expected_tx_count) begin
+            `uvm_info("SEQ", $sformatf("  TX counter verified: %0d frames", tx_count), UVM_LOW)
+        end else begin
+            `uvm_warning("SEQ", $sformatf("  TX counter mismatch: expected %0d, got %0d", 
+                         expected_tx_count, tx_count))
+        end
+        
+        // Verify RX counter
+        if (rx_count == expected_rx_count) begin
+            `uvm_info("SEQ", $sformatf("  RX counter verified: %0d frames", rx_count), UVM_LOW)
+        end else begin
+            `uvm_warning("SEQ", $sformatf("  RX counter mismatch: expected %0d, got %0d", 
+                         expected_rx_count, rx_count))
+        end
+        
+    endtask
+
+endclass : mac_counter_verify_seq

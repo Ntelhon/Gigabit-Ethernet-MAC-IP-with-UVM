@@ -28,6 +28,7 @@ TESTS=(
     "mac_runt_frame_test"
     "mac_ifg_test"
     "mac_reset_during_traffic_test"
+    "mac_comprehensive_test"
 )
 
 PASS_COUNT=0

@@ -126,6 +126,9 @@ class mac_crc_error_test extends mac_base_test;
         
         `uvm_info("TEST", "=== mac_crc_error_test Complete ===", UVM_LOW)
         
+        // Print scoreboard summary
+        env.scb.print_summary();
+        
         //----------------------------------------------------------------------
         // Drop Objection
         //----------------------------------------------------------------------

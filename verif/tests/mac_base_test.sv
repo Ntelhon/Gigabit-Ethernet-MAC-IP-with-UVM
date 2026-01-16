@@ -106,13 +106,13 @@ class mac_base_test extends uvm_test;
         srv = uvm_report_server::get_server();
         err_cnt = srv.get_severity_count(UVM_ERROR) + srv.get_severity_count(UVM_FATAL);
         
-        `uvm_info("TEST", "========================================", UVM_NONE)
-        if (err_cnt == 0) begin
-            `uvm_info("TEST", "           TEST PASSED", UVM_NONE)
-        end else begin
-            `uvm_info("TEST", $sformatf("           TEST FAILED (%0d errors)", err_cnt), UVM_NONE)
-        end
-        `uvm_info("TEST", "========================================", UVM_NONE)
+        // `uvm_info("TEST", "========================================", UVM_NONE)
+        // if (err_cnt == 0) begin
+        //     `uvm_info("TEST", "           TEST PASSED", UVM_NONE)
+        // end else begin
+        //     `uvm_info("TEST", $sformatf("           TEST FAILED (%0d errors)", err_cnt), UVM_NONE)
+        // end
+        // `uvm_info("TEST", "========================================", UVM_NONE)
         
     endfunction
 

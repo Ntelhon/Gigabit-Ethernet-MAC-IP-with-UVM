@@ -19,7 +19,7 @@ REM Check for waves option
 if "%1"=="-waves" set WAVES_OPT=-waves
 
 REM Test list
-set TESTS=mac_tx_basic_test mac_rx_basic_test mac_crc_error_test mac_runt_frame_test mac_ifg_test mac_reset_during_traffic_test
+set TESTS=mac_tx_basic_test mac_rx_basic_test mac_crc_error_test mac_runt_frame_test mac_ifg_test mac_reset_during_traffic_test mac_comprehensive_test
 
 set PASS_COUNT=0
 set FAIL_COUNT=0

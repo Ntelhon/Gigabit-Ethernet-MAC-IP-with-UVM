@@ -115,6 +115,9 @@ class mac_ifg_test extends mac_base_test;
         `uvm_info("TEST", "=== mac_ifg_test Complete ===", UVM_LOW)
         `uvm_info("TEST", "Note: IFG timing verified by GMII monitor", UVM_MEDIUM)
         
+        // Print scoreboard summary
+        env.scb.print_summary();
+        
         //----------------------------------------------------------------------
         // Drop Objection
         //----------------------------------------------------------------------

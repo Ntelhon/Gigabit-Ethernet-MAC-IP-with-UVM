@@ -123,6 +123,9 @@ class mac_rx_basic_test extends mac_base_test;
         
         `uvm_info("TEST", "=== mac_rx_basic_test Complete ===", UVM_LOW)
         
+        // Print scoreboard summary
+        env.scb.print_summary();
+        
         //----------------------------------------------------------------------
         // Drop Objection
         //----------------------------------------------------------------------

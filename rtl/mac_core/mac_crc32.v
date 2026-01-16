@@ -121,15 +121,19 @@ module mac_crc32 (
             crc_reg <= 32'hFFFFFFFF;
         end else if (init) begin
             crc_reg <= 32'hFFFFFFFF;
+            `ifdef DEBUG
             // synthesis translate_off
             $display("[CRC32 DEBUG] @%0t: CRC INIT", $time);
             // synthesis translate_on
+            `endif
         end else if (enable) begin
             crc_reg <= crc_next;
+            `ifdef DEBUG
             // synthesis translate_off
             $display("[CRC32 DEBUG] @%0t: data_in=%02h crc_in=%02h crc_reg=%08h -> crc_next=%08h", 
                      $time, data_in, crc_in, crc_reg, crc_next);
             // synthesis translate_on
+            `endif
         end
         // else: hold current value
     end

@@ -74,5 +74,6 @@ package mac_test_pkg;
     `include "mac_runt_frame_test.sv"
     `include "mac_ifg_test.sv"
     `include "mac_reset_during_traffic_test.sv"
+    `include "mac_comprehensive_test.sv"
 
 endpackage : mac_test_pkg

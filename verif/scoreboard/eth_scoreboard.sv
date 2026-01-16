@@ -406,11 +406,22 @@ class eth_scoreboard extends uvm_scoreboard;
 
     //==========================================================================
     // Report Phase - Print summary
+    // NOTE: In Vivado xsim, report_phase runs at time 0 (during initialization)
+    // The actual summary is printed by print_summary() called from each test's
+    // run_phase before dropping objection.
     //==========================================================================
     function void report_phase(uvm_phase phase);
-        string report;
-        
         super.report_phase(phase);
+        
+        // Don't print summary here - it runs at time 0 in xsim
+        // Each test calls print_summary() explicitly in run_phase
+    endfunction
+    
+    //==========================================================================
+    // Print Summary - Can be called explicitly from test
+    //==========================================================================
+    function void print_summary();
+        string report;
         
         report = "\n";
         report = {report, "============================================================\n"};
@@ -438,7 +449,6 @@ class eth_scoreboard extends uvm_scoreboard;
         report = {report, "============================================================\n"};
         
         `uvm_info("SB", report, UVM_NONE)
-        
     endfunction
 
     //==========================================================================
