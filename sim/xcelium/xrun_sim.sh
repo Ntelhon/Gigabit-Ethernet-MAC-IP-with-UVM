@@ -48,6 +48,7 @@ COMPILE_ONLY=0
 RUN_ONLY=0
 GUI_MODE=0
 DEBUG_MODE=0
+VERBOSE_DEBUG=0
 
 #-------------------------------------------------------------------------------
 # Usage
@@ -69,6 +70,7 @@ usage() {
     echo "  -run_only           Run only (use existing compile)"
     echo "  -gui                Open SimVision GUI"
     echo "  -debug              Enable debug mode (more access)"
+    echo "  -verbose            Enable verbose debug output (DEBUG define)"
     echo "  -clean              Clean work directory before compile"
     echo "  -h, -help           Show this help"
     echo ""
@@ -130,6 +132,10 @@ while [[ $# -gt 0 ]]; do
             DEBUG_MODE=1
             shift
             ;;
+        -verbose)
+            VERBOSE_DEBUG=1
+            shift
+            ;;
         -clean)
             CLEAN=1
             shift
@@ -180,6 +186,7 @@ echo "Seed:          $SEED"
 echo "Timeout:       $TIMEOUT"
 echo "Waves:         $([ $ENABLE_WAVES -eq 1 ] && echo 'Enabled' || echo 'Disabled')"
 echo "Coverage:      $([ $ENABLE_COV -eq 1 ] && echo 'Enabled' || echo 'Disabled')"
+echo "Verbose Debug: $([ $VERBOSE_DEBUG -eq 1 ] && echo 'Enabled' || echo 'Disabled')"
 echo "=============================================================================="
 
 #-------------------------------------------------------------------------------
@@ -220,6 +227,11 @@ XRUN_OPTS+=" -top tb_top"                     # Top module
 XRUN_OPTS+=" -define UVM_NO_DPI"
 XRUN_OPTS+=" -define UVM_REGEX_NO_DPI"
 XRUN_OPTS+=" -define SIMULATION"
+
+# Verbose debug output
+if [[ $VERBOSE_DEBUG -eq 1 ]]; then
+    XRUN_OPTS+=" -define DEBUG"
+fi
 
 # Message control
 XRUN_OPTS+=" -messages"                       # Enable detailed messages

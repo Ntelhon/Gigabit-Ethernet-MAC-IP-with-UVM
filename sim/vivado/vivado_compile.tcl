@@ -229,6 +229,12 @@ set verilog_defines [list \
     "UVM_NO_DEPRECATED" \
 ]
 
+# Check for DEBUG mode from environment variable
+if {[info exists ::env(DEBUG_MODE)] && $::env(DEBUG_MODE) == 1} {
+    puts "DEBUG mode enabled - adding DEBUG define"
+    lappend verilog_defines "DEBUG"
+}
+
 set_property verilog_define $verilog_defines [get_filesets sim_1]
 
 #-------------------------------------------------------------------------------

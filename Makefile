@@ -69,6 +69,9 @@ WAVES ?= 0
 # Enable coverage (0 or 1)
 COV ?= 0
 
+# Enable debug output (0 or 1)
+DEBUG ?= 0
+
 # Top module
 TOP ?= tb_top
 
@@ -104,6 +107,13 @@ else
     VIVADO_WAVE_OPT :=
 endif
 
+# Vivado debug options
+ifeq ($(DEBUG),1)
+    VIVADO_DEBUG_OPT := debug
+else
+    VIVADO_DEBUG_OPT :=
+endif
+
 #-------------------------------------------------------------------------------
 # Cadence Xcelium Configuration
 #-------------------------------------------------------------------------------
@@ -133,7 +143,12 @@ XRUN_OPTS := \
     -nowarn COVDEF \
     -nowarn COVSEC
 
-# Xcelium debug options
+# Xcelium debug output options
+ifeq ($(DEBUG),1)
+    XRUN_OPTS += -define DEBUG
+endif
+
+# Xcelium waveform options
 ifeq ($(WAVES),1)
     XRUN_OPTS += -access +rwc -linedebug
 else
@@ -189,10 +204,12 @@ help:
 	@echo "   TIMEOUT=<ns>          Timeout in ns (default: $(TIMEOUT))"
 	@echo "   WAVES=1               Enable waveform dump"
 	@echo "   COV=1                 Enable coverage (xcelium)"
+	@echo "   DEBUG=1               Enable verbose debug output"
 	@echo ""
 	@echo " Examples:"
 	@echo "   make run SIM=vivado TEST=mac_tx_basic_test"
 	@echo "   make run SIM=xcelium TEST=mac_rx_basic_test WAVES=1"
+	@echo "   make compile SIM=vivado DEBUG=1"
 	@echo "   make regress SIM=xcelium COV=1"
 	@echo "   make waves SIM=vivado TEST=mac_tx_basic_test"
 	@echo "   make clean"
@@ -226,6 +243,7 @@ info:
 	@echo "  Timeout:         $(TIMEOUT) ns"
 	@echo "  Waves:           $(WAVES)"
 	@echo "  Coverage:        $(COV)"
+	@echo "  Debug:           $(DEBUG)"
 	@echo "  Project Root:    $(PROJ_ROOT)"
 	@echo ""
 
@@ -272,10 +290,13 @@ compile_vivado: check_vivado
 	@echo ""
 	@echo "==============================================================================="
 	@echo " Compiling with Vivado xsim"
+ifeq ($(DEBUG),1)
+	@echo " DEBUG mode enabled"
+endif
 	@echo "==============================================================================="
 	@echo ""
 	@mkdir -p $(VIVADO_WORK)
-	@cd $(VIVADO_DIR) && $(VIVADO) -mode batch -source $(VIVADO_COMPILE_TCL) \
+	@cd $(VIVADO_DIR) && DEBUG_MODE=$(DEBUG) $(VIVADO) -mode batch -source $(VIVADO_COMPILE_TCL) \
 		-notrace -nojournal \
 		2>&1 | tee $(VIVADO_DIR)/compile.log
 	@echo ""
@@ -289,6 +310,9 @@ compile_xcelium: check_xcelium
 	@echo ""
 	@echo "==============================================================================="
 	@echo " Compiling with Cadence Xcelium"
+ifeq ($(DEBUG),1)
+	@echo " DEBUG mode enabled"
+endif
 	@echo "==============================================================================="
 	@echo ""
 	@mkdir -p $(XCELIUM_WORK)

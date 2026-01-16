@@ -288,4 +288,28 @@ module tb_top;
         // $dumpvars(0, tb_top);
     end
 
+    //==========================================================================
+    // GMII TX Monitor (Debug - enabled with +define+DEBUG)
+    //==========================================================================
+    `ifdef DEBUG
+    int gmii_byte_cnt = 0;
+    bit in_gmii_frame = 0;
+    
+    always @(posedge gmii_clk) begin
+        if (gmii_vif.tx_en) begin
+            if (!in_gmii_frame) begin
+                $display("[GMII_TX] @%0t: FRAME START", $time);
+                in_gmii_frame = 1;
+                gmii_byte_cnt = 0;
+            end
+            $display("[GMII_TX] @%0t: TX_EN=1 TXD=%02h (byte %0d)", 
+                     $time, gmii_vif.txd, gmii_byte_cnt);
+            gmii_byte_cnt++;
+        end else if (in_gmii_frame) begin
+            $display("[GMII_TX] @%0t: FRAME END (total %0d bytes)", $time, gmii_byte_cnt);
+            in_gmii_frame = 0;
+        end
+    end
+    `endif
+
 endmodule : tb_top

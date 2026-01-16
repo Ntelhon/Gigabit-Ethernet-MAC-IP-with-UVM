@@ -346,6 +346,31 @@ module mac_top #(
     // Read from FIFO when tx_ready (mac_tx is in DATA state and accepting)
     assign tx_fifo_rd_en = tx_ready && !tx_fifo_empty;
 
+    // Debug: FIFO operations
+    `ifdef DEBUG
+    always @(posedge gtx_clk) begin
+        if (tx_fifo_rd_en) begin
+            $display("[MAC_TOP] @%0t: FIFO RD: data=%02h sof=%b eof=%b tx_ready=%b",
+                     $time, tx_data, tx_sof, tx_eof, tx_ready);
+        end
+        if (tx_new_frame_avail) begin
+            $display("[MAC_TOP] @%0t: NEW_FRAME_AVAIL! frames_in_fifo=%0d", 
+                     $time, tx_frames_in_fifo);
+        end
+        if (tx_fifo_rd_en && tx_eof) begin
+            $display("[MAC_TOP] @%0t: FRAME_READ_DONE! frames_in_fifo=%0d->%0d", 
+                     $time, tx_frames_in_fifo, tx_frames_in_fifo - 1);
+        end
+    end
+    
+    always @(posedge sys_clk) begin
+        if (tx_fifo_wr_en) begin
+            $display("[MAC_TOP] @%0t: AXI-S TX: data=%02h sof=%b eof=%b", 
+                     $time, tx_axis_tdata, tx_axis_tuser, tx_axis_tlast);
+        end
+    end
+    `endif
+
     //==========================================================================
     // RX FIFO Write Side (RX Clock Domain)
     //==========================================================================

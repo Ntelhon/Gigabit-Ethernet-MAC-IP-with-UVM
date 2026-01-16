@@ -159,6 +159,21 @@ module mac_tx #(
         end
     end
 
+    // Debug: State machine transitions
+    `ifdef DEBUG
+    reg [3:0] state_prev;
+    always @(posedge clk) begin
+        state_prev <= state;
+        if (state != state_prev) begin
+            $display("[MAC_TX] @%0t: State %0d->%0d tx_enable=%b tx_data_valid=%b tx_sof=%b tx_eof=%b",
+                     $time, state_prev, state, tx_enable, tx_data_valid, tx_sof, tx_eof);
+        end
+        if (state == ST_IDLE && tx_data_valid && tx_sof) begin
+            $display("[MAC_TX] @%0t: NEW_FRAME detected! tx_enable=%b", $time, tx_enable);
+        end
+    end
+    `endif
+
     //==========================================================================
     // State Machine - Combinational Next State
     //==========================================================================
@@ -333,6 +348,10 @@ module mac_tx #(
                     if (tx_data_valid) begin
                         gmii_txd   <= tx_data;
                         gmii_tx_en <= 1'b1;
+                        `ifdef DEBUG
+                        $display("[MAC_TX] @%0t: DATA[%0d]=%02h eof=%b", 
+                                 $time, frame_byte_cnt, tx_data, tx_eof);
+                        `endif
                     end else begin
                         // Data underrun - could assert error
                         // For now, transmit zeros
@@ -356,6 +375,12 @@ module mac_tx #(
                         2'd3: gmii_txd <= crc_byte3;
                         default: gmii_txd <= 8'h00;
                     endcase
+                    `ifdef DEBUG
+                    if (fcs_cnt == 2'd0) begin
+                        $display("[MAC_TX] @%0t: FCS bytes: %02h %02h %02h %02h",
+                                 $time, crc_byte0, crc_byte1, crc_byte2, crc_byte3);
+                    end
+                    `endif
                 end
 
                 ST_IFG: begin

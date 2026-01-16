@@ -105,13 +105,25 @@ AI-IP/
    bash run_test.sh mac_tx_only_test
    ```
 
-3. **Run regression**
+3. **Run with debug output**
+   ```bash
+   cd sim/vivado
+   bash compile.sh debug    # Compile with DEBUG flag
+   bash run_test.sh mac_tx_only_test
+   ```
+   Debug mode enables verbose `$display` output for:
+   - MAC TX state machine transitions
+   - FIFO read/write operations  
+   - GMII frame transmission
+   - Frame counter updates
+
+4. **Run regression**
    ```bash
    cd sim/vivado
    bash run_regression.sh
    ```
 
-4. **Using Makefile**
+5. **Using Makefile**
    ```bash
    make compile   # Compile design
    make run       # Run default test
