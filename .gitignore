@@ -1,0 +1,147 @@
+# ==============================================================================
+# Gigabit Ethernet MAC IP - Git Ignore File
+# ==============================================================================
+
+# ==============================================================================
+# Simulation Outputs
+# ==============================================================================
+
+# Vivado simulation
+sim/vivado/work/
+sim/vivado/results/
+sim/vivado/*.log
+sim/vivado/*.jou
+sim/vivado/*.backup.log
+sim/vivado/*.backup.jou
+sim/vivado/*.wdb
+sim/vivado/*.pb
+sim/vivado/.Xil/
+
+# Xcelium simulation
+sim/xcelium/xcelium.d/
+sim/xcelium/INCA_libs/
+sim/xcelium/waves.shm/
+sim/xcelium/*.log
+sim/xcelium/*.history
+sim/xcelium/*.diag
+sim/xcelium/*.err
+sim/xcelium/xrun.key
+
+# General simulation outputs
+*.vcd
+*.fsdb
+*.vpd
+*.shm/
+*.trn
+*.dsn
+
+# ==============================================================================
+# Build/Synthesis Outputs
+# ==============================================================================
+
+# Vivado project files
+*.xpr
+*.xpr.bak
+*.runs/
+*.cache/
+*.hw/
+*.ip_user_files/
+*.sim/
+*.gen/
+*.srcs/
+.Xil/
+
+# Quartus
+*.qpf
+*.qsf
+db/
+incremental_db/
+output_files/
+simulation/
+
+# ==============================================================================
+# Log and Backup Files
+# ==============================================================================
+
+# Log files
+*.log
+*.rpt
+*.txt.bak
+
+# Backup files
+*.bak
+*.backup
+*~
+*.orig
+*.swp
+*.swo
+\#*\#
+
+# ==============================================================================
+# Editor and IDE Files
+# ==============================================================================
+
+# VS Code
+.vscode/
+*.code-workspace
+
+# Vim
+*.swp
+*.swo
+*~
+
+# Emacs
+\#*\#
+.\#*
+
+# JetBrains IDEs
+.idea/
+
+# ==============================================================================
+# OS Generated Files
+# ==============================================================================
+
+# macOS
+.DS_Store
+.AppleDouble
+.LSOverride
+._*
+
+# Windows
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+
+# Linux
+*~
+
+# ==============================================================================
+# Python (if any scripts)
+# ==============================================================================
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+.env
+.venv/
+venv/
+
+# ==============================================================================
+# Miscellaneous
+# ==============================================================================
+
+# Temporary files
+*.tmp
+*.temp
+temp/
+tmp/
+
+# Core dumps
+core
+core.*
+
+# Coverage data
+*.ucdb
+cov_work/
+coverage/
