@@ -49,6 +49,7 @@ RUN_ONLY=0
 GUI_MODE=0
 DEBUG_MODE=0
 VERBOSE_DEBUG=0
+TOP_MODULE="tb_top"
 
 #-------------------------------------------------------------------------------
 # Usage
@@ -72,15 +73,25 @@ usage() {
     echo "  -debug              Enable debug mode (more access)"
     echo "  -verbose            Enable verbose debug output (DEBUG define)"
     echo "  -clean              Clean work directory before compile"
+    echo "  -top <module>       Top module (tb_top or tb_dma_top, default: tb_top)"
     echo "  -h, -help           Show this help"
     echo ""
-    echo "Available tests:"
+    echo "Available MAC tests (use tb_top):"
     echo "  mac_tx_basic_test"
     echo "  mac_rx_basic_test"
     echo "  mac_crc_error_test"
     echo "  mac_runt_frame_test"
     echo "  mac_ifg_test"
     echo "  mac_reset_during_traffic_test"
+    echo "  mac_comprehensive_test"
+    echo ""
+    echo "Available DMA tests (use tb_dma_top with -top option):"
+    echo "  dma_tx_only_test"
+    echo "  dma_rx_only_test"
+    echo "  dma_tx_rx_test"
+    echo "  dma_multi_packet_test"
+    echo "  dma_stress_test"
+    echo "  eth_controller_full_test"
     echo ""
     exit 1
 }
@@ -106,6 +117,10 @@ while [[ $# -gt 0 ]]; do
             ;;
         -timeout)
             TIMEOUT="$2"
+            shift 2
+            ;;
+        -top)
+            TOP_MODULE="$2"
             shift 2
             ;;
         -waves)
@@ -221,7 +236,7 @@ XRUN_OPTS+=" -64bit"                          # 64-bit mode
 XRUN_OPTS+=" -sv"                             # Enable SystemVerilog
 XRUN_OPTS+=" -uvm"                            # Enable UVM 1.2
 XRUN_OPTS+=" -timescale 1ns/1ps"              # Default timescale
-XRUN_OPTS+=" -top tb_top"                     # Top module
+XRUN_OPTS+=" -top $TOP_MODULE"                # Top module (tb_top or tb_dma_top)
 
 # UVM options (no DPI)
 XRUN_OPTS+=" -define UVM_NO_DPI"

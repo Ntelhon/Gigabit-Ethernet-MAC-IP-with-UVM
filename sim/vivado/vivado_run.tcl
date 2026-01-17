@@ -67,6 +67,10 @@ for {set i 0} {$i < $argc} {incr i} {
             incr i
             set project_name [lindex $argv $i]
         }
+        "-top" {
+            incr i
+            set top_module [lindex $argv $i]
+        }
     }
 }
 
@@ -117,6 +121,7 @@ puts "=============================================="
 puts "Vivado xsim Simulation Run Script"
 puts "=============================================="
 puts "Test Name:   $test_name"
+puts "Top Module:  $top_module"
 puts "Verbosity:   $verbosity"
 puts "Waves:       [expr {$enable_waves ? "Enabled" : "Disabled"}]"
 puts "Seed:        $random_seed"
@@ -137,6 +142,12 @@ if {![file exists $project_file]} {
 
 puts "Opening project: $project_file"
 open_project $project_file
+
+#-------------------------------------------------------------------------------
+# Set Top Module (support for tb_top or tb_dma_top)
+#-------------------------------------------------------------------------------
+puts "Setting top module: $top_module"
+set_property -name top -value $top_module -objects [get_filesets sim_1]
 
 #-------------------------------------------------------------------------------
 # Configure UVM Test Parameters

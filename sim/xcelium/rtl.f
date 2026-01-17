@@ -46,3 +46,38 @@ ${PROJECT_ROOT}/rtl/phy_if/gmii_phy_if.v
 
 # RGMII PHY interface (behavioral DDR)
 ${PROJECT_ROOT}/rtl/phy_if/rgmii_phy_if.v
+
+#-------------------------------------------------------------------------------
+# DMA RTL (Verilog) - Optional
+#-------------------------------------------------------------------------------
+
+# DMA package (parameters and types)
+${PROJECT_ROOT}/rtl/dma/dma_pkg.v
+
+# DMA descriptor module
+${PROJECT_ROOT}/rtl/dma/dma_desc.v
+
+# DMA TX engine
+${PROJECT_ROOT}/rtl/dma/dma_tx.v
+
+# DMA RX engine
+${PROJECT_ROOT}/rtl/dma/dma_rx.v
+
+# DMA registers (AXI-Lite slave)
+${PROJECT_ROOT}/rtl/dma/dma_regs.v
+
+# DMA top-level integration
+${PROJECT_ROOT}/rtl/dma/dma_top.v
+
+#-------------------------------------------------------------------------------
+# Ethernet Controller Integration (MAC + DMA)
+#-------------------------------------------------------------------------------
+
+# Controller registers (MAC + DMA combined)
+${PROJECT_ROOT}/rtl/dma/eth_controller_regs.v
+
+# Controller interrupt handler
+${PROJECT_ROOT}/rtl/dma/eth_controller_irq.v
+
+# Controller top-level
+${PROJECT_ROOT}/rtl/dma/eth_controller_top.v

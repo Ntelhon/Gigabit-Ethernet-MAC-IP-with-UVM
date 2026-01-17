@@ -53,6 +53,7 @@ set project_root [file normalize "$script_dir/../.."]
 # Source directories
 set rtl_mac_dir    "$project_root/rtl/mac_core"
 set rtl_phy_dir    "$project_root/rtl/phy_if"
+set rtl_dma_dir    "$project_root/rtl/dma"
 set tb_if_dir      "$project_root/verif/interfaces"
 set tb_agents_dir  "$project_root/verif/agents"
 set tb_env_dir     "$project_root/verif/env"
@@ -110,6 +111,13 @@ foreach f [glob -nocomplain -directory $rtl_phy_dir *.v] {
     lappend rtl_files $f
 }
 
+# DMA RTL (if exists)
+if {[file exists $rtl_dma_dir]} {
+    foreach f [glob -nocomplain -directory $rtl_dma_dir *.v] {
+        lappend rtl_files $f
+    }
+}
+
 puts "Found [llength $rtl_files] RTL files"
 
 #-------------------------------------------------------------------------------
@@ -149,7 +157,13 @@ if {[file exists $axis_pkg_file]} {
     lappend tb_files $axis_pkg_file
 }
 
-# 4. Scoreboard package (depends on gmii_agent_pkg)
+# 3b. AXI-MM agent package (for DMA)
+set axi_mm_pkg_file "$tb_agents_dir/axi_mm_agent/axi_mm_agent_pkg.sv"
+if {[file exists $axi_mm_pkg_file]} {
+    lappend tb_files $axi_mm_pkg_file
+}
+
+# 4. Scoreboard package (depends on gmii_agent_pkg, axi_mm_agent_pkg)
 set scb_pkg_file "$tb_scb_dir/eth_scoreboard_pkg.sv"
 if {[file exists $scb_pkg_file]} {
     lappend tb_files $scb_pkg_file
@@ -203,10 +217,12 @@ puts "Setting include directories..."
 set include_dirs [list \
     $rtl_mac_dir \
     $rtl_phy_dir \
+    $rtl_dma_dir \
     $tb_if_dir \
     "$tb_agents_dir/gmii_agent" \
     "$tb_agents_dir/axi_lite_agent" \
     "$tb_agents_dir/axi_stream_agent" \
+    "$tb_agents_dir/axi_mm_agent" \
     $tb_scb_dir \
     $tb_env_dir \
     $tb_seq_dir \

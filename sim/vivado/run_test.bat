@@ -23,19 +23,31 @@ if "%1"=="" (
     echo.
     echo Usage: run_test.bat ^<test_name^> [options]
     echo.
-    echo Available tests:
+    echo Available MAC tests:
     echo   mac_tx_basic_test
     echo   mac_rx_basic_test
     echo   mac_crc_error_test
     echo   mac_runt_frame_test
     echo   mac_ifg_test
     echo   mac_reset_during_traffic_test
+    echo   mac_comprehensive_test
+    echo.
+    echo Available DMA tests (use tb_dma_top):
+    echo   dma_tx_only_test
+    echo   dma_rx_only_test
+    echo   dma_tx_rx_test
+    echo   dma_multi_packet_test
+    echo   dma_stress_test
+    echo.
+    echo Full controller test (use tb_dma_top):
+    echo   eth_controller_full_test
     echo.
     echo Options:
     echo   -verbosity ^<level^>  : UVM_NONE, UVM_LOW, UVM_MEDIUM, UVM_HIGH, UVM_FULL
     echo   -waves              : Enable waveform dumping
     echo   -seed ^<value^>       : Set random seed
     echo   -gui                : Open waveform viewer after simulation
+    echo   -top ^<module^>       : Use alternate testbench (tb_top or tb_dma_top)
     echo.
     exit /b 1
 )

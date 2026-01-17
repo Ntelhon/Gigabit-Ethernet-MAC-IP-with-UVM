@@ -1,7 +1,7 @@
-# Gigabit Ethernet MAC IP - Hardware Features
+# Ethernet Controller IP - Hardware Features
 
-**Document Version:** 1.0  
-**IP Version:** 1.0.0  
+**Document Version:** 2.0  
+**IP Version:** 2.0.0  
 **Date:** January 2026
 
 ---
@@ -12,19 +12,23 @@
 2. [Feature Summary](#2-feature-summary)
 3. [Architecture](#3-architecture)
 4. [Module Descriptions](#4-module-descriptions)
-5. [Interfaces](#5-interfaces)
-6. [Clock Domains](#6-clock-domains)
-7. [Reset Architecture](#7-reset-architecture)
-8. [Memory Structures](#8-memory-structures)
-9. [Signal Reference](#9-signal-reference)
-10. [Timing Parameters](#10-timing-parameters)
-11. [Configuration Parameters](#11-configuration-parameters)
+5. [DMA Subsystem](#5-dma-subsystem)
+6. [Interfaces](#6-interfaces)
+7. [Clock Domains](#7-clock-domains)
+8. [Reset Architecture](#8-reset-architecture)
+9. [Memory Structures](#9-memory-structures)
+10. [Signal Reference](#10-signal-reference)
+11. [Timing Parameters](#11-timing-parameters)
+12. [Configuration Parameters](#12-configuration-parameters)
 
 ---
 
 ## 1. Overview
 
-The Gigabit Ethernet MAC IP is a synthesizable Ethernet Media Access Controller. The IP implements IEEE 802.3 compliant frame transmission and reception at 1 Gbps line rate. The design supports GMII and RGMII PHY interfaces.
+The Ethernet Controller IP is a NIC-class architecture combining a Gigabit Ethernet MAC with an optional scatter-gather DMA subsystem. The design supports two operational modes:
+
+- **MAC-only Mode (DMA_ENABLE=0):** Traditional MAC with AXI-Stream interfaces for direct packet access.
+- **DMA Mode (DMA_ENABLE=1):** Full NIC functionality with descriptor-based DMA for efficient system integration.
 
 ### Key Specifications
 
@@ -33,8 +37,9 @@ The Gigabit Ethernet MAC IP is a synthesizable Ethernet Media Access Controller.
 | Line Rate | 1000 Mbps (Gigabit Ethernet) |
 | Interface Standard | IEEE 802.3-2018 |
 | PHY Interface | GMII / RGMII |
-| Data Interface | AXI4-Stream |
-| Control Interface | AXI4-Lite |
+| Data Interface | AXI4-Stream (MAC) / AXI4-MM (DMA) |
+| Control Interface | AXI4-Lite (unified) |
+| DMA Architecture | Scatter-gather with descriptor rings |
 | Technology | Technology-independent RTL |
 | Language | Verilog-2001 |
 
@@ -42,7 +47,7 @@ The Gigabit Ethernet MAC IP is a synthesizable Ethernet Media Access Controller.
 
 ## 2. Feature Summary
 
-### Transmission Features
+### MAC Transmission Features
 
 | Feature | Description |
 |---------|-------------|
@@ -52,7 +57,7 @@ The Gigabit Ethernet MAC IP is a synthesizable Ethernet Media Access Controller.
 | Inter-Frame Gap | Configurable IFG (default 12 bytes) |
 | Store-and-Forward | Complete frame buffered before transmission |
 
-### Reception Features
+### MAC Reception Features
 
 | Feature | Description |
 |---------|-------------|
@@ -62,55 +67,108 @@ The Gigabit Ethernet MAC IP is a synthesizable Ethernet Media Access Controller.
 | Error Signaling | Frame status reported via tuser signal |
 | Promiscuous Mode | All valid frames accepted |
 
+### DMA Features (when DMA_ENABLE=1)
+
+| Feature | Description |
+|---------|-------------|
+| Scatter-Gather | Descriptor-based DMA for flexible buffer management |
+| Ring Buffers | Configurable TX and RX descriptor rings |
+| 64-bit Addressing | Support for large system memory |
+| Burst Transfers | AXI4 burst reads/writes for efficiency |
+| Status Writeback | Automatic descriptor status update |
+| Interrupt Coalescing | Configurable packet/time thresholds |
+
 ### System Features
 
 | Feature | Description |
 |---------|-------------|
 | Clock Domain Crossing | Asynchronous FIFOs with Gray-coded pointers |
-| AXI4-Lite Registers | Configuration, status, and interrupt registers |
-| Interrupt Support | Masked interrupts for TX/RX events |
+| AXI4-Lite Registers | Unified configuration interface for MAC + DMA |
+| Dual Interrupts | Separate mac_irq and dma_irq outputs |
 | Statistics Counters | 32-bit TX/RX frame and error counters |
+| Configurable DMA | DMA_ENABLE parameter for MAC-only mode |
 
 ---
 
 ## 3. Architecture
 
-### Block Diagram
+### Block Diagram (DMA Mode)
 
 ```
-                              ┌─────────────────────────────────────────────────┐
-                              │                   mac_top                        │
-                              │                                                  │
-    AXI4-Lite ◄──────────────►│  ┌──────────┐                                    │
-    (sys_clk)                 │  │ mac_regs │                                    │
-                              │  └────┬─────┘                                    │
-                              │       │ control/status                           │
-                              │       ▼                                          │
-    AXI-Stream TX ───────────►│  ┌──────────┐    ┌──────────┐    ┌────────────┐ │
-    (sys_clk)                 │  │ TX FIFO  │───►│  mac_tx  │───►│ GMII TX IF │─┼──► GMII TX
-                              │  │  (CDC)   │    │          │    │            │ │   (gtx_clk)
-                              │  └──────────┘    └────┬─────┘    └────────────┘ │
-                              │                       │                          │
-                              │                 ┌─────┴─────┐                    │
-                              │                 │ mac_crc32 │ (TX)               │
-                              │                 └───────────┘                    │
-                              │                                                  │
-    AXI-Stream RX ◄───────────│  ┌──────────┐    ┌──────────┐                    │
-    (sys_clk)                 │  │ RX FIFO  │◄───│  mac_rx  │◄───────────────────┼─── GMII RX
-                              │  │  (CDC)   │    │          │                    │   (rx_clk)
-                              │  └──────────┘    └────┬─────┘                    │
-                              │                       │                          │
-                              │                 ┌─────┴─────┐                    │
-                              │                 │ mac_crc32 │ (RX)               │
-                              │                 └───────────┘                    │
-                              │                                                  │
-                              │  ┌────────────────┐                              │
-    Interrupt ◄───────────────┼──│ Interrupt Logic│                              │
-                              │  └────────────────┘                              │
-                              └─────────────────────────────────────────────────┘
+                              ┌──────────────────────────────────────────────────────────────────────┐
+                              │                      eth_controller_top                               │
+                              │                                                                       │
+    AXI4-Lite ◄──────────────►│  ┌───────────────────┐                                                │
+    (0x000-0x3FF)             │  │eth_controller_regs│                                                │
+                              │  └────────┬──────────┘                                                │
+                              │           │ ┌─────────────┐ ┌─────────────┐                           │
+                              │           ├─► mac_regs   │ │ dma_regs    │◄─────────────┐            │
+                              │           │ └──────┬──────┘ └──────┬──────┘              │            │
+                              │           │        │               │                     │            │
+                              │  ┌────────┴────────┴───────────────┴────────────────┐   │            │
+                              │  │                     mac_top                       │   │            │
+                              │  │  ┌──────────┐    ┌──────────┐    ┌────────────┐  │   │            │
+    AXI-Stream TX             │  │  │ TX FIFO  │───►│  mac_tx  │───►│ GMII TX IF │──┼───┼──► GMII TX │
+    (from DMA)  ─────────────►│  │  │  (CDC)   │    │          │    │            │  │   │  (gtx_clk) │
+                              │  │  └──────────┘    └────┬─────┘    └────────────┘  │   │            │
+                              │  │                       │                          │   │            │
+                              │  │                 ┌─────┴─────┐                    │   │            │
+                              │  │                 │ mac_crc32 │                    │   │            │
+                              │  │                 └───────────┘                    │   │            │
+                              │  │                                                  │   │            │
+    AXI-Stream RX             │  │  ┌──────────┐    ┌──────────┐                    │   │            │
+    (to DMA)    ◄─────────────│  │  │ RX FIFO  │◄───│  mac_rx  │◄───────────────────┼───┼─── GMII RX │
+                              │  │  │  (CDC)   │    │          │                    │   │  (rx_clk)  │
+                              │  │  └──────────┘    └──────────┘                    │   │            │
+                              │  └──────────────────────────────────────────────────┘   │            │
+                              │                         ▲                               │            │
+                              │                         │ AXI-Stream                    │            │
+                              │  ┌──────────────────────┴───────────────────────────────┴──────────┐ │
+                              │  │                          dma_top                                │ │
+                              │  │  ┌──────────┐    ┌──────────┐    ┌──────────┐                   │ │
+                              │  │  │ dma_desc │◄──►│ dma_tx   │───►│ AXI-S TX │───────────────────┤ │
+                              │  │  │ (rings)  │    │          │    │          │                   │ │
+    AXI4 Master ◄────────────►│  │  └─────┬────┘    └──────────┘    └──────────┘                   │ │
+    (Memory)                  │  │        │         ┌──────────┐    ┌──────────┐                   │ │
+                              │  │        └────────►│ dma_rx   │◄───│ AXI-S RX │◄──────────────────┤ │
+                              │  │                  │          │    │          │                   │ │
+                              │  │                  └──────────┘    └──────────┘                   │ │
+                              │  └─────────────────────────────────────────────────────────────────┘ │
+                              │                                                                       │
+    Interrupts ◄──────────────│  ┌───────────────────┐                                                │
+    mac_irq, dma_irq          │  │eth_controller_irq │                                                │
+                              │  └───────────────────┘                                                │
+                              └───────────────────────────────────────────────────────────────────────┘
 ```
 
-### Data Flow
+### Block Diagram (MAC-Only Mode, DMA_ENABLE=0)
+
+```
+                              ┌────────────────────────────────────────────────────────┐
+                              │                    eth_controller_top                   │
+                              │                                                         │
+    AXI4-Lite ◄──────────────►│  ┌───────────────────┐                                  │
+    (0x000-0x1FF)             │  │eth_controller_regs│                                  │
+                              │  └─────────┬─────────┘                                  │
+                              │            │                                            │
+                              │  ┌─────────▼─────────────────────────────────────────┐ │
+                              │  │                     mac_top                        │ │
+    AXI-Stream TX ───────────►│  │  ┌──────────┐    ┌──────────┐    ┌────────────┐   │─┼─► GMII TX
+    (sys_clk)                 │  │  │ TX FIFO  │───►│  mac_tx  │───►│ GMII TX IF │   │ │  (gtx_clk)
+                              │  │  │  (CDC)   │    │          │    │            │   │ │
+                              │  │  └──────────┘    └──────────┘    └────────────┘   │ │
+                              │  │                                                    │ │
+    AXI-Stream RX ◄───────────│  │  ┌──────────┐    ┌──────────┐                      │ │
+    (sys_clk)                 │  │  │ RX FIFO  │◄───│  mac_rx  │◄─────────────────────┼─┼─ GMII RX
+                              │  │  │  (CDC)   │    │          │                      │ │  (rx_clk)
+                              │  │  └──────────┘    └──────────┘                      │ │
+                              │  └────────────────────────────────────────────────────┘ │
+                              │                                                         │
+    mac_irq ◄─────────────────│  (dma_irq tied low)                                     │
+                              └─────────────────────────────────────────────────────────┘
+```
+
+### Data Flow (MAC-Only Mode)
 
 **TX Path:**
 1. Software writes frame data to AXI-Stream TX interface.
@@ -129,32 +187,84 @@ The Gigabit Ethernet MAC IP is a synthesizable Ethernet Media Access Controller.
 5. Valid frames enter RX CDC FIFO (rx_clk → sys_clk).
 6. Software reads frame data from AXI-Stream RX interface.
 
+### Data Flow (DMA Mode)
+
+**TX Path:**
+1. Software prepares TX descriptor with buffer address and OWN=1.
+2. Software advances TX head pointer.
+3. DMA descriptor engine fetches descriptor from memory.
+4. TX DMA engine reads packet data via AXI4 bursts.
+5. Data is buffered in TX DMA FIFO.
+6. DMA streams data to MAC via AXI-Stream.
+7. MAC transmits frame on GMII.
+8. DMA writes back descriptor status (DONE, OWN=0).
+
+**RX Path:**
+1. PHY receives frame on GMII.
+2. MAC validates frame and outputs via AXI-Stream.
+3. RX DMA engine buffers incoming data.
+4. DMA fetches pre-prepared descriptor from ring.
+5. RX DMA writes packet data to memory via AXI4 bursts.
+6. DMA writes back descriptor with length and status.
+7. Interrupt signals packet completion.
+
 ---
 
 ## 4. Module Descriptions
 
-### 4.1 mac_top
+### 4.1 eth_controller_top
 
-**Purpose:** Top-level integration module.
+**Purpose:** Top-level Ethernet Controller module.
+
+**File:** `rtl/eth_controller_top.v`
+
+**Functions:**
+- Conditional DMA instantiation based on DMA_ENABLE parameter.
+- Unified register block integration.
+- AXI-Stream routing (external or DMA).
+- Dual interrupt aggregation.
+
+**Key Parameters:**
+- DMA_ENABLE: Enable/disable DMA subsystem.
+- DMA_ADDR_WIDTH: AXI address width (32 or 64).
+- DMA_DATA_WIDTH: AXI data width (64).
+
+---
+
+### 4.2 eth_controller_regs
+
+**Purpose:** Unified register address decoder.
+
+**File:** `rtl/eth_controller_regs.v`
+
+**Functions:**
+- Routes AXI-Lite transactions to MAC or DMA.
+- Address decode: 0x000-0x1FF → MAC, 0x200-0x3FF → DMA.
+- Returns DECERR for DMA access when DMA_ENABLE=0.
+
+---
+
+### 4.3 mac_top
+
+**Purpose:** Gigabit Ethernet MAC module.
 
 **File:** `rtl/mac_core/mac_top.v`
 
 **Functions:**
-- Instantiates all submodules.
+- Instantiates all MAC submodules.
 - Implements clock domain crossing synchronizers.
 - Connects internal signals between modules.
-- Provides external interface ports.
+- Provides AXI-Stream and GMII interface ports.
 
 **Key Logic:**
 - TX/RX enable CDC synchronizers (3-stage flip-flops).
 - Frame availability toggle signaling for store-and-forward.
-- FIFO data packing and unpacking.
 
 ---
 
-### 4.2 mac_regs
+### 4.4 mac_regs
 
-**Purpose:** AXI4-Lite register interface.
+**Purpose:** MAC AXI4-Lite register interface.
 
 **File:** `rtl/mac_core/mac_regs.v`
 
@@ -172,7 +282,7 @@ The Gigabit Ethernet MAC IP is a synthesizable Ethernet Media Access Controller.
 
 ---
 
-### 4.3 mac_tx
+### 4.5 mac_tx
 
 **Purpose:** TX path state machine.
 
@@ -287,9 +397,151 @@ The Gigabit Ethernet MAC IP is a synthesizable Ethernet Media Access Controller.
 
 ---
 
-## 5. Interfaces
+## 5. DMA Subsystem
 
-### 5.1 AXI4-Lite Slave Interface
+The DMA subsystem is conditionally instantiated when `DMA_ENABLE=1`. It provides scatter-gather DMA functionality for efficient packet transfer.
+
+### 5.1 DMA Architecture
+
+```
+┌─────────────────────────────────────────────────────────────┐
+│                         dma_top                              │
+│                                                              │
+│  ┌──────────────────────────────────────────────────────┐   │
+│  │                     dma_desc                          │   │
+│  │  ┌───────────┐  ┌───────────┐  ┌────────────────┐   │   │
+│  │  │ TX Ring   │  │ RX Ring   │  │ AXI Read/Write │   │   │
+│  │  │ Manager   │  │ Manager   │  │ for Descriptors│   │   │
+│  │  └─────┬─────┘  └─────┬─────┘  └───────┬────────┘   │   │
+│  └────────┼──────────────┼────────────────┼────────────┘   │
+│           │              │                │                 │
+│  ┌────────▼────────┐  ┌──▼──────────┐    │                 │
+│  │    dma_tx       │  │   dma_rx    │    │    AXI4 Master │
+│  │  ┌──────────┐   │  │ ┌────────┐  │    │    Interface   │
+│  │  │ TX FIFO  │   │  │ │RX FIFO │  │    │        │       │
+│  │  └────┬─────┘   │  │ └───┬────┘  │    │        ▼       │
+│  │       │ AXI-S   │  │     │AXI-S  │    └────► ARBITER   │◄──► Memory
+│  │       ▼ to MAC  │  │     ▼to DMA │                      │
+│  └─────────────────┘  └─────────────┘                      │
+│                                                              │
+│  ┌──────────────────────────────────────────────────────┐   │
+│  │                     dma_regs                          │   │
+│  │   TX_CTRL/STATUS  RX_CTRL/STATUS  INT_STATUS/MASK   │   │
+│  └──────────────────────────────────────────────────────┘   │
+└─────────────────────────────────────────────────────────────┘
+```
+
+### 5.2 DMA Modules
+
+#### 5.2.1 dma_top
+
+**Purpose:** DMA subsystem top-level integration.
+
+**File:** `rtl/dma/dma_top.v`
+
+**Functions:**
+- Integrates descriptor engine, TX DMA, RX DMA.
+- AXI4 master arbiter for memory access.
+- AXI-Stream connections to MAC.
+
+---
+
+#### 5.2.2 dma_desc
+
+**Purpose:** Descriptor ring management engine.
+
+**File:** `rtl/dma/dma_desc.v`
+
+**Functions:**
+- TX and RX descriptor ring management.
+- Descriptor fetch from system memory.
+- Descriptor writeback with status.
+- Head/tail pointer tracking.
+
+**Descriptor Format (16 bytes):**
+
+| Offset | Field | Description |
+|--------|-------|-------------|
+| 0-3 | addr_lo | Buffer address [31:0] |
+| 4-7 | addr_hi | Buffer address [63:32] |
+| 8-9 | length | Buffer length / Actual length |
+| 10-11 | reserved | Reserved |
+| 12-15 | status | Control/status bits |
+
+**Status Bits:**
+
+| Bit | Name | Description |
+|-----|------|-------------|
+| 0 | OWN | Ownership (0=CPU, 1=DMA) |
+| 1 | DONE | Transfer complete |
+| 2 | ERR | Error occurred |
+| 3 | LAST | Last descriptor of packet |
+| 4 | FIRST | First descriptor of packet |
+
+---
+
+#### 5.2.3 dma_tx
+
+**Purpose:** TX DMA engine.
+
+**File:** `rtl/dma/dma_tx.v`
+
+**Functions:**
+- Reads packet data from system memory.
+- Buffers in internal FIFO.
+- Streams to MAC via AXI-Stream.
+- Triggers descriptor writeback.
+
+**State Machine:**
+- IDLE → CALC_BURST → ISSUE_AR → READ_DATA → STREAM_OUT → WRITEBACK
+
+---
+
+#### 5.2.4 dma_rx
+
+**Purpose:** RX DMA engine.
+
+**File:** `rtl/dma/dma_rx.v`
+
+**Functions:**
+- Receives packets from MAC via AXI-Stream.
+- Buffers in internal FIFO.
+- Writes to system memory via AXI bursts.
+- Updates descriptor with actual length.
+
+**State Machine:**
+- IDLE → WAIT_SOF → RECEIVE → CALC_BURST → ISSUE_AW → WRITE_DATA → WRITEBACK
+
+---
+
+#### 5.2.5 dma_regs
+
+**Purpose:** DMA register interface.
+
+**File:** `rtl/dma/dma_regs.v`
+
+**Functions:**
+- TX DMA control and status.
+- RX DMA control and status.
+- DMA interrupt status and mask.
+
+---
+
+### 5.3 DMA Performance
+
+| Parameter | Value |
+|-----------|-------|
+| Max Burst Length | 16 beats (configurable) |
+| AXI Data Width | 64 bits |
+| Descriptor Fetch Latency | ~20 cycles |
+| TX Throughput | Line-rate (1 Gbps) |
+| RX Throughput | Line-rate (1 Gbps) |
+
+---
+
+## 6. Interfaces
+
+### 6.1 AXI4-Lite Slave Interface
 
 **Purpose:** Register access for configuration and status.
 
@@ -297,7 +549,7 @@ The Gigabit Ethernet MAC IP is a synthesizable Ethernet Media Access Controller.
 
 | Signal | Direction | Width | Description |
 |--------|-----------|-------|-------------|
-| s_axi_awaddr | Input | 8 | Write address |
+| s_axi_awaddr | Input | 10 | Write address |
 | s_axi_awvalid | Input | 1 | Write address valid |
 | s_axi_awready | Output | 1 | Write address ready |
 | s_axi_wdata | Input | 32 | Write data |

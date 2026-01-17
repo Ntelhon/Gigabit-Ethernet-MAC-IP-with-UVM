@@ -1,7 +1,7 @@
 #!/bin/bash
 #===============================================================================
 # File: run_regression.sh
-# Description: Run all MAC UVM tests with Cadence Xcelium
+# Description: Run all MAC/DMA UVM tests with Cadence Xcelium
 #
 # Usage:
 #   ./run_regression.sh [options]
@@ -11,6 +11,8 @@
 #   -cov      Enable coverage collection
 #   -clean    Clean before starting
 #   -j <N>    Run N tests in parallel (default: 1)
+#   -all      Run all tests (MAC + DMA)
+#   -dma      Run DMA tests only
 #
 # Author: AI-IP Generator
 #===============================================================================
@@ -26,6 +28,7 @@ WAVES_OPT=""
 COV_OPT=""
 CLEAN_OPT=""
 PARALLEL=1
+TEST_SET="mac"
 
 #-------------------------------------------------------------------------------
 # Parse Arguments
@@ -48,6 +51,14 @@ while [[ $# -gt 0 ]]; do
             PARALLEL="$2"
             shift 2
             ;;
+        -all)
+            TEST_SET="all"
+            shift
+            ;;
+        -dma)
+            TEST_SET="dma"
+            shift
+            ;;
         *)
             shift
             ;;
@@ -55,23 +66,43 @@ while [[ $# -gt 0 ]]; do
 done
 
 #-------------------------------------------------------------------------------
-# Test List
+# Test Lists
 #-------------------------------------------------------------------------------
-TESTS=(
+MAC_TESTS=(
     "mac_tx_basic_test"
     "mac_rx_basic_test"
     "mac_crc_error_test"
     "mac_runt_frame_test"
     "mac_ifg_test"
     "mac_reset_during_traffic_test"
+    "mac_comprehensive_test"
 )
+
+DMA_TESTS=(
+    "dma_tx_only_test"
+    "dma_rx_only_test"
+    "dma_tx_rx_test"
+    "dma_multi_packet_test"
+    "dma_stress_test"
+    "eth_controller_full_test"
+)
+
+# Select tests based on mode
+if [ "$TEST_SET" = "mac" ]; then
+    TESTS=("${MAC_TESTS[@]}")
+elif [ "$TEST_SET" = "dma" ]; then
+    TESTS=("${DMA_TESTS[@]}")
+else
+    TESTS=("${MAC_TESTS[@]}" "${DMA_TESTS[@]}")
+fi
 
 #-------------------------------------------------------------------------------
 # Run Regression
 #-------------------------------------------------------------------------------
 echo ""
 echo "=============================================================================="
-echo "                    MAC UVM Regression Suite (Xcelium)"
+echo "               Ethernet MAC/DMA UVM Regression Suite (Xcelium)"
+echo "                         Test Set: $TEST_SET"
 echo "=============================================================================="
 echo ""
 
@@ -89,6 +120,7 @@ TOTAL_COUNT=${#TESTS[@]}
 SUMMARY_FILE="$SCRIPT_DIR/results/regression_summary.txt"
 mkdir -p "$SCRIPT_DIR/results"
 echo "Regression Summary - $(date)" > "$SUMMARY_FILE"
+echo "Test Set: $TEST_SET" >> "$SUMMARY_FILE"
 echo "============================================" >> "$SUMMARY_FILE"
 
 # Run tests
@@ -97,7 +129,14 @@ for test in "${TESTS[@]}"; do
     echo "Running: $test"
     echo "------------------------------------------------------------------------------"
     
-    if "$SCRIPT_DIR/xrun_sim.sh" -test "$test" -run_only $WAVES_OPT $COV_OPT; then
+    # Determine testbench based on test name
+    if [[ "$test" == dma_* ]] || [[ "$test" == eth_controller_* ]]; then
+        TOP_OPT="-top tb_dma_top"
+    else
+        TOP_OPT=""
+    fi
+    
+    if "$SCRIPT_DIR/xrun_sim.sh" -test "$test" -run_only $TOP_OPT $WAVES_OPT $COV_OPT; then
         echo "$test: PASSED" >> "$SUMMARY_FILE"
         ((PASS_COUNT++))
     else

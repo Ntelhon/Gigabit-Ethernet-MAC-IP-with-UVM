@@ -7,10 +7,13 @@
 //
 // Contents:
 //   - eth_crc_model:   CRC32 reference model
-//   - eth_scoreboard:  Frame comparison scoreboard
+//   - eth_scoreboard:  Frame comparison scoreboard for MAC
+//   - dma_scoreboard:  DMA transaction scoreboard
 //
 // Dependencies:
 //   - gmii_agent_pkg (for gmii_frame)
+//   - axi_stream_agent_pkg (for axi_stream_item)
+//   - axi_mm_agent_pkg (for axi_mm_item)
 //
 // Usage:
 //   import eth_scoreboard_pkg::*;
@@ -33,6 +36,12 @@ package eth_scoreboard_pkg;
     
     // Import GMII agent for gmii_frame class
     import gmii_agent_pkg::*;
+    
+    // Import AXI-Stream agent for packet items
+    import axi_stream_agent_pkg::*;
+    
+    // Import AXI-MM agent for DMA memory transactions
+    import axi_mm_agent_pkg::*;
 
     //==========================================================================
     // Include scoreboard files in dependency order
@@ -43,5 +52,8 @@ package eth_scoreboard_pkg;
     
     // Scoreboard (depends on eth_crc_model and gmii_frame)
     `include "eth_scoreboard.sv"
+    
+    // DMA scoreboard (depends on axi_mm_item and axi_stream_item)
+    `include "dma_scoreboard.sv"
 
 endpackage : eth_scoreboard_pkg

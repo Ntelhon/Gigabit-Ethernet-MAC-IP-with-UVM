@@ -19,6 +19,7 @@
 -incdir ${PROJECT_ROOT}/verif/agents/gmii_agent
 -incdir ${PROJECT_ROOT}/verif/agents/axi_lite_agent
 -incdir ${PROJECT_ROOT}/verif/agents/axi_stream_agent
+-incdir ${PROJECT_ROOT}/verif/agents/axi_mm_agent
 -incdir ${PROJECT_ROOT}/verif/scoreboard
 -incdir ${PROJECT_ROOT}/verif/env
 -incdir ${PROJECT_ROOT}/verif/sequences
@@ -37,6 +38,9 @@ ${PROJECT_ROOT}/verif/interfaces/axi_lite_if.sv
 
 # AXI-Stream interface (TX and RX)
 ${PROJECT_ROOT}/verif/interfaces/axi_stream_if.sv
+
+# AXI-MM interface (for DMA memory access)
+${PROJECT_ROOT}/verif/interfaces/axi_mm_if.sv
 
 #-------------------------------------------------------------------------------
 # GMII Agent Package (compile order matters)
@@ -58,6 +62,13 @@ ${PROJECT_ROOT}/verif/agents/axi_lite_agent/axi_lite_agent_pkg.sv
 
 # AXI-Stream agent package (includes all agent components)
 ${PROJECT_ROOT}/verif/agents/axi_stream_agent/axi_stream_agent_pkg.sv
+
+#-------------------------------------------------------------------------------
+# AXI-MM Agent Package (for DMA)
+#-------------------------------------------------------------------------------
+
+# AXI-MM agent package (includes all agent components)
+${PROJECT_ROOT}/verif/agents/axi_mm_agent/axi_mm_agent_pkg.sv
 
 #-------------------------------------------------------------------------------
 # Scoreboard Package
@@ -84,5 +95,8 @@ ${PROJECT_ROOT}/verif/tests/mac_test_pkg.sv
 # Testbench Top
 #-------------------------------------------------------------------------------
 
-# UVM testbench top module
+# UVM testbench top module (MAC only)
 ${PROJECT_ROOT}/verif/tb/tb_top.sv
+
+# UVM testbench top module (MAC + DMA)
+${PROJECT_ROOT}/verif/tb/tb_dma_top.sv
