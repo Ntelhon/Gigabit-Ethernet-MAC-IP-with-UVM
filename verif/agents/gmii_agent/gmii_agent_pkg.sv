@@ -40,6 +40,9 @@ package gmii_agent_pkg;
     // Transaction class (no dependencies)
     `include "gmii_frame.sv"
     
+    // Sequence (depends on gmii_frame)
+    `include "gmii_sequence.sv"
+    
     // Sequencer (depends on gmii_frame)
     `include "gmii_sequencer.sv"
     

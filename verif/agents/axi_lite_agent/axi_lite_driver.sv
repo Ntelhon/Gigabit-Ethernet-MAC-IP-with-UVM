@@ -87,10 +87,11 @@ class axi_lite_driver extends uvm_driver #(axi_lite_txn);
             txn.end_time = $time;
             txn.completed = 1;
             
-            `uvm_info("AXI_DRV", txn.convert2string(), UVM_MEDIUM)
+            `uvm_info("AXI_DRV", txn.convert2string(), UVM_HIGH)
             
-            // Signal completion
-            seq_item_port.item_done();
+            // Signal completion and send response back to sequencer
+            // For reads, this allows sequences to get the read data via get_response()
+            seq_item_port.item_done(txn);
         end
     endtask
 

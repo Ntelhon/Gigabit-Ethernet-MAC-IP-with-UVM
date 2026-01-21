@@ -90,20 +90,22 @@ class gmii_driver extends uvm_driver #(gmii_frame);
     task run_phase(uvm_phase phase);
         gmii_frame frame;
         
+        `uvm_info("GMII_DRV", "Driver run_phase started", UVM_LOW)
+        
         // Initialize signals
         reset_signals();
         
         forever begin
             // Wait for reset to be released
             wait_for_reset_release();
-            
+                    
             // Get next frame from sequencer
             seq_item_port.get_next_item(frame);
             
-            `uvm_info("GMII_DRV", $sformatf("Driving frame: %s", frame.convert2string()), UVM_MEDIUM)
-            
             // Drive the frame
             drive_frame(frame);
+
+            `uvm_info("GMII_DRV", $sformatf("Got frame, now driving: %s", frame.convert2string()), UVM_MEDIUM)
             
             // Broadcast frame to analysis port (for scoreboard tracking)
             frame_port.write(frame);
@@ -169,6 +171,8 @@ class gmii_driver extends uvm_driver #(gmii_frame);
         // Inject CRC error if requested
         if (frame.inject_crc_error) begin
             crc = crc ^ 32'hDEADBEEF;
+            `uvm_info("GMII_DRV", $sformatf("CRC Error injected! Original CRC=0x%08h, Corrupted CRC=0x%08h", 
+                      calculate_crc(frame_bytes), crc), UVM_MEDIUM)
         end
         
         // Assert carrier sense

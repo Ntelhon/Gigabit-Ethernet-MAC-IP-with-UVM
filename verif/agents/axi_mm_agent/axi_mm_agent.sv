@@ -61,12 +61,12 @@ class axi_mm_agent extends uvm_agent;
         
         // Always create monitor
         monitor = axi_mm_monitor::type_id::create("monitor", this);
-        uvm_config_db#(virtual axi_mm_if.MONITOR)::set(this, "monitor", "vif", vif.MONITOR);
+        uvm_config_db#(virtual axi_mm_if)::set(this, "monitor", "vif", vif);
         
         // Create driver if active
         if (is_active == UVM_ACTIVE) begin
             driver = axi_mm_driver::type_id::create("driver", this);
-            uvm_config_db#(virtual axi_mm_if.SLAVE)::set(this, "driver", "vif", vif.SLAVE);
+            uvm_config_db#(virtual axi_mm_if)::set(this, "driver", "vif", vif);
         end
         
         // Create analysis ports

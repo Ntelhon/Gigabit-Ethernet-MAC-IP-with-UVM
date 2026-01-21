@@ -36,7 +36,9 @@ package axi_lite_agent_pkg;
     //==========================================================================
     // Include agent files in dependency order
     //==========================================================================
-    
+    `include "mac_reg_defines.svh"  // AXI-Lite register definitions
+    `include "dma_reg_defines.svh"  // AXI-Lite register definitions
+
     // Transaction class (no dependencies)
     `include "axi_lite_txn.sv"
     

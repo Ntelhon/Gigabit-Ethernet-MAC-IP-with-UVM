@@ -52,7 +52,7 @@ XCELIUM_DIR    := $(SIM_DIR)/xcelium
 # Simulation Parameters (Overridable from command line)
 #-------------------------------------------------------------------------------
 # Default test name
-TEST ?= mac_tx_basic_test
+TEST ?= mac_tx_rx_loopback_test
 
 # Random seed (1 = fixed, random = random)
 SEED ?= 1
@@ -81,6 +81,7 @@ TOP ?= tb_top
 TESTS := \
     mac_tx_basic_test \
     mac_rx_basic_test \
+    mac_tx_rx_loopback_test \
     mac_crc_error_test \
     mac_runt_frame_test \
     mac_ifg_test \

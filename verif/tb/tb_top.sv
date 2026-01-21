@@ -35,9 +35,11 @@ module tb_top;
     import gmii_agent_pkg::*;
     import axi_lite_agent_pkg::*;
     import axi_stream_agent_pkg::*;
-    import eth_scoreboard_pkg::*;
-    import mac_env_pkg::*;
-    import mac_test_pkg::*;
+    import axi_mm_agent_pkg::*;
+    import mac_scoreboard_pkg::*;
+    import dma_scoreboard_pkg::*;
+    import eth_env_pkg::*;
+    import eth_test_pkg::*;
 
     //==========================================================================
     // Clock and Reset Signals
@@ -221,12 +223,12 @@ module tb_top;
     //==========================================================================
     
     initial begin
-        // Set GMII interface
+        // Set GMII interface (updated path for hierarchical env)
         uvm_config_db#(virtual gmii_if)::set(
-            null, "uvm_test_top.env.gmii_agt*", "vif", gmii_vif
+            null, "uvm_test_top.env.mac_env.gmii_agt*", "vif", gmii_vif
         );
         
-        // Set AXI-Lite interface
+        // Set AXI-Lite interface (updated path - now at top level)
         uvm_config_db#(virtual axi_lite_if#(32,32))::set(
             null, "uvm_test_top.env.axi_lite_agt*", "vif", axi_vif
         );
@@ -240,9 +242,9 @@ module tb_top;
             null, "*", "axi_vif", axi_vif
         );
         
-        // Set AXI-Stream interface (unified TX and RX)
+        // Set AXI-Stream interface (updated path for MAC sub-env)
         uvm_config_db#(virtual axi_stream_if)::set(
-            null, "uvm_test_top.env.axis_agt*", "vif", axis_vif
+            null, "uvm_test_top.env.mac_env.axis_agt*", "vif", axis_vif
         );
         
         uvm_config_db#(virtual axi_stream_if)::set(

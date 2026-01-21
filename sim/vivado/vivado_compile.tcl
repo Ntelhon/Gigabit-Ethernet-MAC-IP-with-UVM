@@ -127,23 +127,38 @@ puts "Collecting testbench sources..."
 
 set tb_files [list]
 
-# Interfaces
-foreach f [glob -nocomplain -directory $tb_if_dir *.sv] {
-    lappend tb_files $f
+# CRITICAL: Add axi_mm_if first (must be before packages that use it)
+set axi_mm_if_file "$tb_if_dir/axi_mm_if.sv"
+if {[file exists $axi_mm_if_file]} {
+    lappend tb_files $axi_mm_if_file
+    puts "Added axi_mm_if.sv first"
 }
 
-# SystemVerilog files in dependency order
-# Add files in explicit order to avoid dependency issues
+# Then add other interfaces
+set axi_lite_if_file "$tb_if_dir/axi_lite_if.sv"
+if {[file exists $axi_lite_if_file]} {
+    lappend tb_files $axi_lite_if_file
+}
 
-# 1. Interfaces first (no dependencies)
-foreach f [glob -nocomplain -directory $tb_if_dir *.sv] {
-    lappend tb_files $f
+set axi_stream_if_file "$tb_if_dir/axi_stream_if.sv"
+if {[file exists $axi_stream_if_file]} {
+    lappend tb_files $axi_stream_if_file
+}
+
+set gmii_if_file "$tb_if_dir/gmii_if.sv"
+if {[file exists $gmii_if_file]} {
+    lappend tb_files $gmii_if_file
 }
 
 # 2. Agent packages (no cross-dependencies)
 set axi_pkg_file "$tb_agents_dir/axi_lite_agent/axi_lite_agent_pkg.sv"
 if {[file exists $axi_pkg_file]} {
     lappend tb_files $axi_pkg_file
+}
+
+set axi_mm_pkg_file "$tb_agents_dir/axi_mm_agent/axi_mm_agent_pkg.sv"
+if {[file exists $axi_mm_pkg_file]} {
+    lappend tb_files $axi_mm_pkg_file
 }
 
 set gmii_pkg_file "$tb_agents_dir/gmii_agent/gmii_agent_pkg.sv"
@@ -157,28 +172,70 @@ if {[file exists $axis_pkg_file]} {
     lappend tb_files $axis_pkg_file
 }
 
-# 3b. AXI-MM agent package (for DMA)
-set axi_mm_pkg_file "$tb_agents_dir/axi_mm_agent/axi_mm_agent_pkg.sv"
-if {[file exists $axi_mm_pkg_file]} {
-    lappend tb_files $axi_mm_pkg_file
+# 4. Scoreboard packages (new structure)
+# MAC scoreboard
+set mac_scb_pkg_file "$project_root/verif/scoreboards/mac_scoreboard/mac_scoreboard_pkg.sv"
+if {[file exists $mac_scb_pkg_file]} {
+    lappend tb_files $mac_scb_pkg_file
+    puts "Added MAC scoreboard package"
 }
 
-# 4. Scoreboard package (depends on gmii_agent_pkg, axi_mm_agent_pkg)
-set scb_pkg_file "$tb_scb_dir/eth_scoreboard_pkg.sv"
-if {[file exists $scb_pkg_file]} {
-    lappend tb_files $scb_pkg_file
+# DMA scoreboard
+set dma_scb_pkg_file "$project_root/verif/scoreboards/dma_scoreboard/dma_scoreboard_pkg.sv"
+if {[file exists $dma_scb_pkg_file]} {
+    lappend tb_files $dma_scb_pkg_file
+    puts "Added DMA scoreboard package"
 }
 
-# 4. Environment package (depends on agents and scoreboard)
-set env_pkg_file "$tb_env_dir/mac_env_pkg.sv"
-if {[file exists $env_pkg_file]} {
-    lappend tb_files $env_pkg_file
+# 5. Interface-specific sequence library packages
+# AXI-Lite sequences (register access)
+set axi_lite_seq_pkg_file "$project_root/verif/sequences/axi_lite_seq_lib/axi_lite_seq_lib_pkg.sv"
+if {[file exists $axi_lite_seq_pkg_file]} {
+    lappend tb_files $axi_lite_seq_pkg_file
+    puts "Added AXI-Lite sequence library"
 }
 
-# 5. Test package (depends on environment)
-set test_pkg_file "$tb_tests_dir/mac_test_pkg.sv"
+# GMII sequences (frame injection)
+set gmii_seq_pkg_file "$project_root/verif/sequences/gmii_seq_lib/gmii_seq_lib_pkg.sv"
+if {[file exists $gmii_seq_pkg_file]} {
+    lappend tb_files $gmii_seq_pkg_file
+    puts "Added GMII sequence library"
+}
+
+# AXI-Stream sequences (data transfer)
+set axis_seq_pkg_file "$project_root/verif/sequences/axi_stream_seq_lib/axi_stream_seq_lib_pkg.sv"
+if {[file exists $axis_seq_pkg_file]} {
+    lappend tb_files $axis_seq_pkg_file
+    puts "Added AXI-Stream sequence library"
+}
+
+# 6. Sub-environment packages
+# MAC sub-environment
+set mac_sub_env_pkg_file "$project_root/verif/env/mac_sub_env/mac_sub_env_pkg.sv"
+if {[file exists $mac_sub_env_pkg_file]} {
+    lappend tb_files $mac_sub_env_pkg_file
+    puts "Added MAC sub-environment package"
+}
+
+# DMA sub-environment
+set dma_sub_env_pkg_file "$project_root/verif/env/dma_sub_env/dma_sub_env_pkg.sv"
+if {[file exists $dma_sub_env_pkg_file]} {
+    lappend tb_files $dma_sub_env_pkg_file
+    puts "Added DMA sub-environment package"
+}
+
+# 7. Top-level environment package
+set eth_env_pkg_file "$tb_env_dir/eth_env_pkg.sv"
+if {[file exists $eth_env_pkg_file]} {
+    lappend tb_files $eth_env_pkg_file
+    puts "Added top-level environment package"
+}
+
+# 8. Test package (depends on environment and sequences)
+set test_pkg_file "$tb_tests_dir/eth_test_pkg.sv"
 if {[file exists $test_pkg_file]} {
     lappend tb_files $test_pkg_file
+    puts "Added test package"
 }
 
 # Testbench top
@@ -223,9 +280,15 @@ set include_dirs [list \
     "$tb_agents_dir/axi_lite_agent" \
     "$tb_agents_dir/axi_stream_agent" \
     "$tb_agents_dir/axi_mm_agent" \
-    $tb_scb_dir \
+    "$project_root/verif/scoreboards/mac_scoreboard/src" \
+    "$project_root/verif/scoreboards/dma_scoreboard/src" \
+    "$project_root/verif/sequences/gmii_seq_lib" \
+    "$project_root/verif/sequences/mac_seq_lib" \
+    "$project_root/verif/sequences/dma_seq_lib" \
+    "$project_root/verif/env/mac_sub_env" \
+    "$project_root/verif/env/dma_sub_env" \
+    "$project_root/verif/tests/src" \
     $tb_env_dir \
-    $tb_seq_dir \
     $tb_tests_dir \
     $tb_top_dir \
     "$project_root/rtl" \
@@ -285,6 +348,11 @@ set_property -name {xsim.simulate.xsim.more_options} \
 # Update and Compile
 #-------------------------------------------------------------------------------
 puts "Updating compile order..."
+
+# Set compile order to manual to preserve our ordering
+set_property source_mgmt_mode None [current_project]
+
+# Update compile order to resolve dependencies properly
 update_compile_order -fileset sim_1
 
 puts "Launching simulation compile..."

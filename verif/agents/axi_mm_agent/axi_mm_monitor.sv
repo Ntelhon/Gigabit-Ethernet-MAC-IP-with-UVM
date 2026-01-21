@@ -12,7 +12,7 @@ class axi_mm_monitor extends uvm_monitor;
     //--------------------------------------------------------------------------
     // Virtual Interface
     //--------------------------------------------------------------------------
-    virtual axi_mm_if.MONITOR vif;
+    virtual axi_mm_if vif;
     
     //--------------------------------------------------------------------------
     // Analysis Ports
@@ -52,7 +52,7 @@ class axi_mm_monitor extends uvm_monitor;
         write_ap = new("write_ap", this);
         read_ap  = new("read_ap", this);
         
-        if (!uvm_config_db#(virtual axi_mm_if.MONITOR)::get(this, "", "vif", vif))
+        if (!uvm_config_db#(virtual axi_mm_if.monitor)::get(this, "", "vif", vif))
             `uvm_fatal("NOVIF", "Virtual interface not found")
     endfunction
     

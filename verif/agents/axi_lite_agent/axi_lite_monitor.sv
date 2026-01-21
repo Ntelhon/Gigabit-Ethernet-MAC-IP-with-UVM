@@ -169,7 +169,7 @@ class axi_lite_monitor extends uvm_monitor;
                 txn.completed = 1;
                 txn.error = !txn.is_ok();
                 
-                `uvm_info("AXI_MON", $sformatf("WRITE complete: %s", txn.convert2string()), UVM_MEDIUM)
+                `uvm_info("AXI_MON", $sformatf("WRITE complete: %s", txn.convert2string()), UVM_HIGH)
                 
                 // Send to analysis port
                 txn_port.write(txn);
@@ -224,7 +224,7 @@ class axi_lite_monitor extends uvm_monitor;
                 txn.completed = 1;
                 txn.error = !txn.is_ok();
                 
-                `uvm_info("AXI_MON", $sformatf("READ complete: %s", txn.convert2string()), UVM_MEDIUM)
+                `uvm_info("AXI_MON", $sformatf("READ complete: %s", txn.convert2string()), UVM_HIGH)
                 
                 // Send to analysis port
                 txn_port.write(txn);

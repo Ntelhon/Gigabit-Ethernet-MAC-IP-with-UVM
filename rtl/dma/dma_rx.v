@@ -159,6 +159,17 @@ module dma_rx #(
     reg [2:0] wdata_byte_idx;
     reg [AXI_DATA_W-1:0] wdata_buf;
     reg [AXI_BYTES-1:0] wstrb_buf;
+    
+    // Temporary calculation variables
+    integer i;
+    reg [15:0] max_bytes;
+    reg [15:0] boundary_bytes;
+    reg [15:0] remaining;
+    reg [7:0]  calc_len;
+    reg [AXI_DATA_W-1:0] new_wdata;
+    reg [AXI_BYTES-1:0] new_wstrb;
+    reg [15:0] bytes_this_beat;
+    reg is_last_beat;
 
     //--------------------------------------------------------------------------
     // Status
@@ -352,11 +363,6 @@ module dma_rx #(
                         state <= ST_WAIT_SOF;
                     end else begin
                         // Calculate burst
-                        reg [15:0] max_bytes;
-                        reg [15:0] boundary_bytes;
-                        reg [15:0] remaining;
-                        reg [7:0]  calc_len;
-                        
                         remaining = bytes_to_write - bytes_written;
                         max_bytes = (remaining < fifo_count) ? remaining : fifo_count[15:0];
                         max_bytes = (max_bytes < MAX_BURST_LEN * AXI_BYTES) ? 
@@ -398,12 +404,6 @@ module dma_rx #(
                 ST_WRITE_DATA: begin
                     if (!m_axi_wvalid || m_axi_wready) begin
                         // Assemble write data from FIFO
-                        integer i;
-                        reg [AXI_DATA_W-1:0] new_wdata;
-                        reg [AXI_BYTES-1:0] new_wstrb;
-                        reg [15:0] bytes_this_beat;
-                        reg is_last_beat;
-                        
                         new_wdata = {AXI_DATA_W{1'b0}};
                         new_wstrb = {AXI_BYTES{1'b0}};
                         bytes_this_beat = 0;

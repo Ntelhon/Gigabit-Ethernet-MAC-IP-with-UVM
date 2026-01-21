@@ -151,6 +151,12 @@ module dma_tx #(
     reg [AXI_DATA_W-1:0] rdata_buf;
     reg [3:0] rdata_bytes_left;
     
+    // Temporary calculation variables
+    integer i;
+    reg [15:0] max_bytes;
+    reg [15:0] boundary_bytes;
+    reg [7:0]  calc_len;
+    
     //--------------------------------------------------------------------------
     // Status
     //--------------------------------------------------------------------------
@@ -260,10 +266,6 @@ module dma_tx #(
                     end else begin
                         // Calculate burst length
                         // Limited by: remaining bytes, max burst, FIFO space, 4K boundary
-                        reg [15:0] max_bytes;
-                        reg [15:0] boundary_bytes;
-                        reg [7:0]  calc_len;
-                        
                         max_bytes = (bytes_remaining < fifo_space) ? bytes_remaining : fifo_space[15:0];
                         max_bytes = (max_bytes < MAX_BURST_LEN * AXI_BYTES) ? max_bytes : (MAX_BURST_LEN * AXI_BYTES);
                         
@@ -301,7 +303,6 @@ module dma_tx #(
                 ST_READ_DATA: begin
                     if (m_axi_rvalid && m_axi_rready) begin
                         // Store received data into FIFO byte by byte
-                        integer i;
                         for (i = 0; i < AXI_BYTES; i = i + 1) begin
                             if (bytes_remaining > 0) begin
                                 fifo_mem[(fifo_wr_ptr + i) & (FIFO_DEPTH-1)] <= 
