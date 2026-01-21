@@ -70,7 +70,11 @@ class mac_comprehensive_test extends mac_base_test;
     int burst_count = 5;
     
     // Stress test frame count
-    int stress_frame_count = 10;
+    int stress_frame_count = 30;  // Increased for more stress
+    
+    // Stress test configuration
+    int stress_frame_sizes[] = '{64, 128, 256, 512, 1024};  // Various sizes for stress
+    bit stress_inject_errors = 0;  // Set to 1 to inject errors during stress
 
     //==========================================================================
     // Constructor
@@ -143,12 +147,12 @@ class mac_comprehensive_test extends mac_base_test;
         // Phase 5: Mixed Frame Sizes
         //----------------------------------------------------------------------
         run_phase_5_mixed_sizes_test();
-
+        
         //----------------------------------------------------------------------
-        // Phase 6: Stress Test - Rapid Frame Injection
+        // Phase 6: Stress Test - High-Speed Loopback with Mixed Traffic
         //----------------------------------------------------------------------
-        //run_phase_6_stress_test();
-
+        run_phase_6_stress_test();
+        
         //----------------------------------------------------------------------
         // Phase 7: Counter Verification
         //----------------------------------------------------------------------
@@ -354,41 +358,99 @@ class mac_comprehensive_test extends mac_base_test;
     endtask
 
     //==========================================================================
-    // Phase 6: Stress Test - Rapid Frame Injection
+    // Phase 6: Stress Test - High-Speed Loopback with Mixed Traffic
+    // 
+    // This phase creates intense stress on the MAC by:
+    // 1. Sending rapid bursts of frames with minimum IFG
+    // 2. Mixing frame sizes from 64 to 1024 bytes
+    // 3. Using different payload patterns to catch data path errors
+    // 4. Testing MAC's ability to handle back-to-back frames
+    // 5. Verifying no frame drops or corruption under load
     //==========================================================================
     virtual task run_phase_6_stress_test();
-        axi_stream_tx_seq  axis_tx_seq;
-        gmii_tx_rx_loopback_seq  loopback_seq;
+        gmii_rx_seq  gmii_seq;
+        gmii_frame frame;
+        int frames_sent = 0;
+        int size_idx;
         
         `uvm_info("TEST", "", UVM_LOW)
         `uvm_info("TEST", "┌──────────────────────────────────────────────────────────────┐", UVM_LOW)
-        `uvm_info("TEST", "│  PHASE 6: Stress Test - Rapid Frame Injection                │", UVM_LOW)
+        `uvm_info("TEST", "│  PHASE 6: Stress Test - High-Speed Mixed Traffic            │", UVM_LOW)
         `uvm_info("TEST", "└──────────────────────────────────────────────────────────────┘", UVM_LOW)
         
-        // Rapid minimum-size frames with minimum IFG
-        axis_tx_seq = axi_stream_tx_seq::type_id::create("axis_tx_stress");
-        axis_tx_seq.num_frames = stress_frame_count;
-        axis_tx_seq.payload_size = 46;  // Minimum for maximum rate
-        axis_tx_seq.dst_mac = 48'hFF_FF_FF_FF_FF_FF;
-        axis_tx_seq.src_mac = dut_mac_addr;
-        axis_tx_seq.random_payload = 1;  // Random data
-        axis_tx_seq.include_crc = 0;
-        axis_tx_seq.ifg_cycles = 12;  // Minimum IFG for stress
+        `uvm_info("TEST", $sformatf("  Injecting %0d frames with varying sizes and patterns", stress_frame_count), UVM_MEDIUM)
         
-        loopback_seq = gmii_tx_rx_loopback_seq::type_id::create("loopback_stress");
-        loopback_seq.num_frames = stress_frame_count;
-        loopback_seq.reinjection_delay = 16;  // Tight timing
+        // Send stress_frame_count frames with varied characteristics
+        for (int i = 0; i < stress_frame_count; i++) begin
+            int payload_size;
+            bit [7:0] pattern;
+            
+            // Cycle through different frame sizes
+            size_idx = i % stress_frame_sizes.size();
+            payload_size = stress_frame_sizes[size_idx] - 18;
+            if (payload_size < 46) payload_size = 46;
+            
+            // Create varied payload patterns to stress data path
+            case (i % 6)
+                0: pattern = 8'h00;  // All zeros
+                1: pattern = 8'hFF;  // All ones
+                2: pattern = 8'hAA;  // Alternating 10101010
+                3: pattern = 8'h55;  // Alternating 01010101
+                4: pattern = 8'hCC;  // 11001100
+                default: pattern = i[7:0];  // Incrementing
+            endcase
+            
+            frame = gmii_frame::type_id::create($sformatf("frame_stress_%0d", i));
+            frame.dst_mac = dut_mac_addr;
+            frame.src_mac = {16'hF00D, 32'(i)};  // Encode frame number in source MAC
+            frame.ether_type = 16'h0800;
+            frame.payload = new[payload_size];
+            
+            // Fill payload with pattern
+            foreach(frame.payload[j]) begin
+                if (i % 5 == 4) 
+                    frame.payload[j] = j[7:0];  // Incrementing pattern
+                else
+                    frame.payload[j] = pattern;
+            end
+            
+            frame.has_fcs = 1;
+            frame.inject_crc_error = 0;
+            frame.ifg_bytes = 12;  // Minimum IFG for maximum stress
+            
+            // Occasionally test with slightly longer IFG
+            if (i % 7 == 0) frame.ifg_bytes = 16;
+            
+            gmii_seq = gmii_rx_seq::type_id::create($sformatf("gmii_seq_stress_%0d", i));
+            gmii_seq.frame = frame;
+            gmii_seq.start(mac_sqr.gmii_sqr);
+            
+            frames_sent++;
+            
+            // Variable delays to create bursty traffic pattern
+            if (i % 5 == 0) begin
+                #50ns;   // Very short delay - continuous burst
+            end else if (i % 10 == 9) begin
+                #1000ns;  // Occasional longer gap to simulate real traffic
+            end else begin
+                #100ns;   // Normal short delay
+            end
+            
+            // Progress indicator every 10 frames
+            if ((i+1) % 10 == 0) begin
+                `uvm_info("TEST", $sformatf("    Progress: %0d/%0d frames sent", i+1, stress_frame_count), UVM_MEDIUM)
+            end
+        end
         
-        fork
-            axis_tx_seq.start(env.mac_env.axis_agt.sequencer);
-            loopback_seq.body();
-        join
+        total_rx_frames += frames_sent;
         
-        total_tx_frames += stress_frame_count;
-        total_rx_frames += stress_frame_count;
+        // Allow time for all frames to be processed
+        #5000ns;
         
-        #3000ns;
-        `uvm_info("TEST", $sformatf("  ✓ Stress test completed with %0d rapid frames", stress_frame_count), UVM_LOW)
+        `uvm_info("TEST", $sformatf("  ✓ Stress test completed - sent %0d frames", frames_sent), UVM_LOW)
+        `uvm_info("TEST", "    Frame sizes: 64-1024 bytes", UVM_LOW)
+        `uvm_info("TEST", "    IFG: 12-16 bytes (minimum to short)", UVM_LOW)
+        `uvm_info("TEST", "    Payload patterns: 0x00, 0xFF, 0xAA, 0x55, 0xCC, incrementing", UVM_LOW)
         
     endtask
 
@@ -409,9 +471,16 @@ class mac_comprehensive_test extends mac_base_test;
         
         `uvm_info("TEST", $sformatf("  Expected TX frames: %0d", total_tx_frames), UVM_LOW)
         `uvm_info("TEST", $sformatf("  Expected RX frames: %0d", total_rx_frames), UVM_LOW)
-        `uvm_info("TEST", $sformatf("  Actual TX frames:   %0d", read_cnt_seq.tx_frame_count), UVM_LOW)
-        `uvm_info("TEST", $sformatf("  Actual RX frames:   %0d", read_cnt_seq.rx_frame_count), UVM_LOW)
+        `uvm_info("TEST", $sformatf("  Actual TX frames:   %0d", read_cnt_seq.mac_tx_frame_cnt), UVM_LOW)
+        `uvm_info("TEST", $sformatf("  Actual RX frames:   %0d", read_cnt_seq.mac_rx_frame_cnt), UVM_LOW)
         `uvm_info("TEST", "  ✓ Frame transmission complete", UVM_LOW)
+
+        if (read_cnt_seq.mac_tx_frame_cnt == total_tx_frames && read_cnt_seq.mac_rx_frame_cnt == total_rx_frames) begin
+            `uvm_info("TEST", "  Frame counts match expected values", UVM_LOW)
+        end else begin
+            `uvm_error("TEST", "Frame count mismatch detected during counter verification")
+            phase_errors++;
+        end
         
     endtask
 

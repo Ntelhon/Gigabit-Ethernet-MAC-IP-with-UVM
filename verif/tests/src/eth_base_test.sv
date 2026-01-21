@@ -137,30 +137,6 @@ class eth_base_test extends uvm_test;
     //==========================================================================
     // Register Access Helper Methods
     //==========================================================================
-    
-    //// Write to register via AXI-Lite (creates and executes eth_base_seq)
-    //task write_reg(bit [31:0] addr, bit [31:0] data);
-    //    eth_base_seq seq;
-    //    seq = eth_base_seq::type_id::create("write_reg_seq");
-    //    seq.write_reg(addr, data);
-    //    seq.start(env.axi_lite_agt.sequencer);
-    //endtask
-    //
-    //// Read from register via AXI-Lite
-    //task read_reg(bit [31:0] addr, output bit [31:0] data);
-    //    eth_base_seq seq;
-    //    seq = eth_base_seq::type_id::create("read_reg_seq");
-    //    seq.read_reg(addr, data);
-    //    seq.start(env.axi_lite_agt.sequencer);
-    //endtask
-    //
-    //// Poll register until condition met
-    //task poll_reg(bit [31:0] addr, bit [31:0] mask, bit [31:0] expected, int timeout_cycles = 1000);
-    //    eth_base_seq seq;
-    //    seq = eth_base_seq::type_id::create("poll_reg_seq");
-    //    seq.poll_reg(addr, mask, expected, timeout_cycles);
-    //    seq.start(env.axi_lite_agt.sequencer);
-    //endtask
     //
     //// Read-Modify-Write register
     //task rmw_reg(bit [31:0] addr, bit [31:0] mask, bit [31:0] value);
@@ -190,48 +166,18 @@ class eth_base_test extends uvm_test;
     //    seq.start(env.mac_env.gmii_agt.sequencer);
     //    received_frames = seq.received_frames;
     //endtask
+    //==========================================================================
 
     //==========================================================================
     // High-Level MAC Configuration Helpers
     //==========================================================================
-    
-    //// Set MAC address
-    //task set_mac_address(bit [47:0] mac_addr);
-    //    write_reg(ADDR_MAC_LO, mac_addr[31:0]);
-    //    write_reg(ADDR_MAC_HI, {16'h0, mac_addr[47:32]});
-    //    `uvm_info("ETH_TEST", $sformatf("MAC address set to %012h", mac_addr), UVM_MEDIUM)
-    //endtask
-    //
-    //// Enable MAC TX/RX
-    //task set_enable_mac(bit tx_en = 1, bit rx_en = 1);
-    //    bit [31:0] ctrl = 0;
-    //    if (tx_en) ctrl[MAC_CTRL_TX_EN_BIT] = 1;
-    //    if (rx_en) ctrl[MAC_CTRL_RX_EN_BIT] = 1;
-    //    write_reg(ADDR_CONTROL, ctrl);
-    //    `uvm_info("ETH_TEST", $sformatf("MAC enabled (TX=%0d RX=%0d)", tx_en, rx_en), UVM_MEDIUM)
-    //endtask
     //
     //// Clear MAC interrupts
     //task clear_interrupts(bit [31:0] mask = 32'hFFFF_FFFF);
     //    write_reg(ADDR_INT_STATUS, mask);
     //    `uvm_info("ETH_TEST", $sformatf("Cleared interrupts with mask 0x%08h", mask), UVM_HIGH)
     //endtask
-    //
-    //// Get RX frame count from status register
-    //task get_rx_frame_count(output int count);
-    //    bit [31:0] rx_count;
-    //    read_reg(ADDR_RX_CNT, rx_count);
-    //    count = rx_count;
-    //    `uvm_info("ETH_TEST", $sformatf("RX frame count: %0d", count), UVM_HIGH)
-    //endtask
-    //
-    //// Get TX frame count from status register
-    //task get_tx_frame_count(output int count);
-    //    bit [31:0] tx_count;
-    //    read_reg(ADDR_TX_CNT, tx_count);
-    //    count = tx_count;
-    //    `uvm_info("ETH_TEST", $sformatf("TX frame count: %0d", count), UVM_HIGH)
-    //endtask
+    //==========================================================================
 
     //==========================================================================
     // Report Phase
