@@ -1,20 +1,35 @@
-// File: gmii_config.sv
+// File: tb/agents/gmii/gmii_config.sv
 class gmii_config extends uvm_object;
-	rand bit is_active;
-	rand bit enable_crc_check;
-	rand bit enable_collision;
-	rand int unsigned max_pkt_size;
-	function new(string name = "gmii_config");
-		super.new(name);
-		is_active = 1;
-		enable_crc_check = 1;
-		enable_collision = 0;
-		max_pkt_size = 1518;
-	endfunction
-	`uvm_object_utils_begin(gmii_config)
-		`uvm_field_int(is_active, UVM_ALL_ON)
-		`uvm_field_int(enable_crc_check, UVM_ALL_ON)
-		`uvm_field_int(enable_collision, UVM_ALL_ON)
-		`uvm_field_int(max_pkt_size, UVM_ALL_ON)
-	`uvm_object_utils_end
+
+  typedef enum {GMII_TX, GMII_RX} gmii_direction_e;
+
+  // Agent configuration
+  uvm_active_passive_enum is_active = UVM_ACTIVE;
+  gmii_direction_e        direction = GMII_TX;
+  
+  // Speed configuration
+  typedef enum {SPEED_10M, SPEED_100M, SPEED_1G} speed_e;
+  speed_e link_speed = SPEED_1G;
+  
+  // Protocol checking
+  bit enable_protocol_checks = 1;
+  bit enable_coverage = 1;
+  bit check_crc = 1;
+  bit check_ifg = 1;
+  
+  // Error injection probability
+  int crc_error_percentage = 0;   // 0-100
+
+  `uvm_object_utils_begin(gmii_config)
+    `uvm_field_enum(uvm_active_passive_enum, is_active, UVM_DEFAULT)
+    `uvm_field_enum(gmii_direction_e, direction, UVM_DEFAULT)
+    `uvm_field_enum(speed_e, link_speed, UVM_DEFAULT)
+    `uvm_field_int(enable_protocol_checks, UVM_DEFAULT)
+    `uvm_field_int(check_crc, UVM_DEFAULT)
+  `uvm_object_utils_end
+
+  function new(string name = "gmii_config");
+    super.new(name);
+  endfunction
+
 endclass : gmii_config

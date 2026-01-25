@@ -1,6 +1,10 @@
-# File: Makefile
+# File: sim/Makefile
+
+# Simulator settings
 SIM = vcs
 SIMV = simv
+
+# Compiler options
 VCS_OPTS = -full64 -sverilog -timescale=1ns/1ps
 VCS_OPTS += +vcs+lic+wait
 VCS_OPTS += -debug_access+all
@@ -8,20 +12,32 @@ VCS_OPTS += -fsdb
 VCS_OPTS += -kdb
 VCS_OPTS += -lca
 VCS_OPTS += +define+UVM_NO_DPI
+
+# UVM options
 UVM_HOME = $(VERDI_HOME)/etc/uvm-1.2
 VCS_OPTS += +incdir+$(UVM_HOME)/src
 VCS_OPTS += -ntb_opts uvm-1.2
+
+# Filelist
 FLIST = compile.f
+
+# Default test
 TEST ?= eth_sanity_test
 SEED ?= 1
 VERBOSITY ?= UVM_MEDIUM
+
+# Build
 compile:
 	$(SIM) $(VCS_OPTS) -f $(FLIST) -l compile.log
+
+# Run simulation
 run:
 	./$(SIMV) +UVM_TESTNAME=$(TEST) \
 	          +UVM_VERBOSITY=$(VERBOSITY) \
 	          +ntb_random_seed=$(SEED) \
 	          -l sim_$(TEST)_$(SEED).log
+
+# Regression
 regression:
 	@echo "Running regression suite..."
 	@make run TEST=eth_sanity_test SEED=1
@@ -30,11 +46,16 @@ regression:
 	@make run TEST=eth_bidir_test SEED=4
 	@make run TEST=mac_sanity_test SEED=5
 	@make run TEST=dma_descriptor_test SEED=6
+
+# Clean
 clean:
 	rm -rf $(SIMV)* csrc *.log *.fsdb *.key verdiLog simv.daidir
+
+# GUI
 gui:
 	./$(SIMV) +UVM_TESTNAME=$(TEST) \
 	          +UVM_VERBOSITY=$(VERBOSITY) \
 	          +ntb_random_seed=$(SEED) \
 	          -gui -l sim_$(TEST)_$(SEED).log
+
 .PHONY: compile run regression clean gui
