@@ -52,7 +52,7 @@ XCELIUM_DIR    := $(SIM_DIR)/xcelium
 # Simulation Parameters (Overridable from command line)
 #-------------------------------------------------------------------------------
 # Default test name
-TEST ?= mac_tx_basic_test
+TEST ?= eth_sanity_test
 
 # Random seed (1 = fixed, random = random)
 SEED ?= 1
@@ -79,12 +79,12 @@ TOP ?= tb_top
 # Test List for Regression
 #-------------------------------------------------------------------------------
 TESTS := \
-    mac_tx_basic_test \
-    mac_rx_basic_test \
-    mac_crc_error_test \
-    mac_runt_frame_test \
-    mac_ifg_test \
-    mac_reset_during_traffic_test
+    eth_sanity_test \
+    eth_rx_path_test \
+    eth_tx_path_test \
+    eth_bidir_test \
+    mac_sanity_test \
+    dma_descriptor_test
 
 #-------------------------------------------------------------------------------
 # Vivado xsim Configuration
