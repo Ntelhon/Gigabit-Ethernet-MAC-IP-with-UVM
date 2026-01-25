@@ -139,7 +139,7 @@ module eth_rx_dma #(
     reg [MEM_DATA_WIDTH-1:0]  data_buffer;
     reg [2:0]                 buffer_byte_count;
     reg                       buffer_full;
-    wire [2:0]                bytes_per_word = (MEM_DATA_WIDTH / AXIS_DATA_WIDTH);
+    localparam [3:0]          bytes_per_word = MEM_DATA_WIDTH / AXIS_DATA_WIDTH;
     
     //==========================================================================
     // Status
@@ -393,7 +393,7 @@ module eth_rx_dma #(
                     if (buffer_byte_count == bytes_per_word) begin
                         mem_wr_strb <= {MEM_DATA_WIDTH/8{1'b1}};  // All bytes valid
                     end else begin
-                        mem_wr_strb <= ({MEM_DATA_WIDTH/8{1'b1}} >> (bytes_per_word - buffer_byte_count));
+                        mem_wr_strb <= ({MEM_DATA_WIDTH/8{1'b1}} >> (MEM_DATA_WIDTH/8 - buffer_byte_count));
                     end
                     
                     // Last beat if this was triggered by tlast

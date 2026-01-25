@@ -241,7 +241,7 @@ module eth_dma_desc #(
                     if (!m_axi_arvalid) begin
                         m_axi_arid    <= ID_TX_DATA;
                         m_axi_araddr  <= tx_data_addr;
-                        m_axi_arlen   <= (tx_data_len >> 3) - 1;  // Convert bytes to beats
+                        m_axi_arlen   <= (tx_data_len >> $clog2(MEM_DATA_WIDTH/8)) - 1;  // Convert bytes to beats
                         m_axi_arvalid <= 1'b1;
                         tx_data_ack   <= 1'b1;
                     end else if (m_axi_arready) begin
@@ -370,7 +370,7 @@ module eth_dma_desc #(
                     if (!m_axi_awvalid) begin
                         m_axi_awid     <= ID_RX_DATA;
                         m_axi_awaddr   <= rx_data_addr;
-                        m_axi_awlen    <= (rx_data_len >> 3) - 1;
+                        m_axi_awlen    <= (rx_data_len >> $clog2(MEM_DATA_WIDTH/8)) - 1;
                         m_axi_awvalid  <= 1'b1;
                         rx_data_ack    <= 1'b1;
                     end else if (m_axi_awready) begin
