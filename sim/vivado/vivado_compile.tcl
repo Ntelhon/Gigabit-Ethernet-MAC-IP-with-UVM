@@ -53,13 +53,12 @@ set project_root [file normalize "$script_dir/../.."]
 # Source directories
 set rtl_mac_dir    "$project_root/rtl/mac_core"
 set rtl_phy_dir    "$project_root/rtl/phy_if"
-set tb_if_dir      "$project_root/verif/interfaces"
-set tb_agents_dir  "$project_root/verif/agents"
-set tb_env_dir     "$project_root/verif/env"
-set tb_scb_dir     "$project_root/verif/scoreboard"
-set tb_seq_dir     "$project_root/verif/sequences"
-set tb_tests_dir   "$project_root/verif/tests"
-set tb_top_dir     "$project_root/verif/tb"
+set tb_agents_dir  "$project_root/verif/tb/agents"
+set tb_env_dir     "$project_root/verif/tb/env"
+set tb_seq_dir     "$project_root/verif/tb/sequences"
+set tb_tests_dir   "$project_root/verif/tb/tests"
+set tb_top_dir     "$project_root/verif/tb/top"
+set tb_if_dir      "$project_root/verif/tb/agents"
 
 # Output directory
 set sim_dir        "$project_root/sim/vivado"
@@ -119,58 +118,20 @@ puts "Collecting testbench sources..."
 
 set tb_files [list]
 
-# Interfaces
-foreach f [glob -nocomplain -directory $tb_if_dir *.sv] {
-    lappend tb_files $f
-}
-
-# SystemVerilog files in dependency order
-# Add files in explicit order to avoid dependency issues
-
-# 1. Interfaces first (no dependencies)
-foreach f [glob -nocomplain -directory $tb_if_dir *.sv] {
-    lappend tb_files $f
-}
-
-# 2. Agent packages (no cross-dependencies)
-set axi_pkg_file "$tb_agents_dir/axi_lite_agent/axi_lite_agent_pkg.sv"
-if {[file exists $axi_pkg_file]} {
-    lappend tb_files $axi_pkg_file
-}
-
-set gmii_pkg_file "$tb_agents_dir/gmii_agent/gmii_agent_pkg.sv"
-if {[file exists $gmii_pkg_file]} {
-    lappend tb_files $gmii_pkg_file
-}
-
-# 3. AXI-Stream agent package
-set axis_pkg_file "$tb_agents_dir/axi_stream_agent/axi_stream_agent_pkg.sv"
-if {[file exists $axis_pkg_file]} {
-    lappend tb_files $axis_pkg_file
-}
-
-# 4. Scoreboard package (depends on gmii_agent_pkg)
-set scb_pkg_file "$tb_scb_dir/eth_scoreboard_pkg.sv"
-if {[file exists $scb_pkg_file]} {
-    lappend tb_files $scb_pkg_file
-}
-
-# 4. Environment package (depends on agents and scoreboard)
-set env_pkg_file "$tb_env_dir/mac_env_pkg.sv"
-if {[file exists $env_pkg_file]} {
-    lappend tb_files $env_pkg_file
-}
-
-# 5. Test package (depends on environment)
-set test_pkg_file "$tb_tests_dir/mac_test_pkg.sv"
-if {[file exists $test_pkg_file]} {
-    lappend tb_files $test_pkg_file
-}
-
-# Testbench top
-foreach f [glob -nocomplain -directory $tb_top_dir *.sv] {
-    lappend tb_files $f
-}
+foreach f [glob -nocomplain -directory $tb_agents_dir/axi_stream *.sv] { lappend tb_files $f }
+foreach f [glob -nocomplain -directory $tb_agents_dir/axi4 *.sv] { lappend tb_files $f }
+foreach f [glob -nocomplain -directory $tb_agents_dir/gmii *.sv] { lappend tb_files $f }
+foreach f [glob -nocomplain -directory $tb_env_dir/mac *.sv] { lappend tb_files $f }
+foreach f [glob -nocomplain -directory $tb_env_dir/dma *.sv] { lappend tb_files $f }
+foreach f [glob -nocomplain -directory $tb_env_dir/eth_controller *.sv] { lappend tb_files $f }
+foreach f [glob -nocomplain -directory $tb_env_dir/eth_controller/axi_lite_agent *.sv] { lappend tb_files $f }
+foreach f [glob -nocomplain -directory $tb_seq_dir/lib *.sv] { lappend tb_files $f }
+foreach f [glob -nocomplain -directory $tb_seq_dir/virtual *.sv] { lappend tb_files $f }
+foreach f [glob -nocomplain -directory $tb_tests_dir/base *.sv] { lappend tb_files $f }
+foreach f [glob -nocomplain -directory $tb_tests_dir/system_tests *.sv] { lappend tb_files $f }
+foreach f [glob -nocomplain -directory $tb_tests_dir/mac_tests *.sv] { lappend tb_files $f }
+foreach f [glob -nocomplain -directory $tb_tests_dir/dma_tests *.sv] { lappend tb_files $f }
+foreach f [glob -nocomplain -directory $tb_top_dir *.sv] { lappend tb_files $f }
 
 puts "Found [llength $tb_files] testbench files"
 
@@ -203,14 +164,19 @@ puts "Setting include directories..."
 set include_dirs [list \
     $rtl_mac_dir \
     $rtl_phy_dir \
-    $tb_if_dir \
-    "$tb_agents_dir/gmii_agent" \
-    "$tb_agents_dir/axi_lite_agent" \
-    "$tb_agents_dir/axi_stream_agent" \
-    $tb_scb_dir \
-    $tb_env_dir \
-    $tb_seq_dir \
-    $tb_tests_dir \
+    "$tb_agents_dir/axi_stream" \
+    "$tb_agents_dir/axi4" \
+    "$tb_agents_dir/gmii" \
+    "$tb_env_dir/mac" \
+    "$tb_env_dir/dma" \
+    "$tb_env_dir/eth_controller" \
+    "$tb_env_dir/eth_controller/axi_lite_agent" \
+    "$tb_seq_dir/lib" \
+    "$tb_seq_dir/virtual" \
+    "$tb_tests_dir/base" \
+    "$tb_tests_dir/system_tests" \
+    "$tb_tests_dir/mac_tests" \
+    "$tb_tests_dir/dma_tests" \
     $tb_top_dir \
     "$project_root/rtl" \
 ]
