@@ -20,6 +20,9 @@ class axi_stream_driver #(
     super.build_phase(phase);
     if(!uvm_config_db#(axi_stream_config)::get(this, "", "cfg", cfg))
       `uvm_fatal("NOCFG", "Config object not found")
+
+    if(!uvm_config_db#(virtual axi_stream_if#(DATA_WIDTH, USER_WIDTH, DEST_WIDTH, ID_WIDTH))::get(this, "", "vif", vif))
+      `uvm_fatal("NOVIF", "Virtual interface not set for axi_stream_driver")
   endfunction
 
   task run_phase(uvm_phase phase);

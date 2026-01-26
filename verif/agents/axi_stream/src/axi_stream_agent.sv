@@ -29,9 +29,12 @@ class axi_stream_agent #(
       `uvm_fatal("NOCFG", "Config object not found")
     
     monitor = monitor_t::type_id::create("monitor", this);
+    uvm_config_db#(axi_stream_config)::set(this, "monitor", "cfg", cfg);
     
     if(cfg.is_active == UVM_ACTIVE) begin
       driver    = driver_t::type_id::create("driver", this);
+      uvm_config_db#(axi_stream_config)::set(this, "driver", "cfg", cfg);
+      
       sequencer = sequencer_t::type_id::create("sequencer", this);
     end
   endfunction

@@ -20,6 +20,9 @@ class axi4_driver #(
     super.build_phase(phase);
     if(!uvm_config_db#(axi4_config)::get(this, "", "cfg", cfg))
       `uvm_fatal("NOCFG", "Config object not found")
+
+    if(!uvm_config_db#(virtual axi4_if#(ADDR_WIDTH, DATA_WIDTH, ID_WIDTH, USER_WIDTH))::get(this, "", "vif", vif))
+      `uvm_fatal("NOVIF", "Virtual interface not set for axi4_driver")
   endfunction
 
   task run_phase(uvm_phase phase);
@@ -91,7 +94,7 @@ class axi4_driver #(
     
     // Wait for write response
     do @(vif.master_driver_cb);
-    while(!(vif.master_driver_cb.bvalid && vif.master_driver_cb.bready));
+    while(!vif.master_driver_cb.bvalid);
     
     item.resp = new[1];
     item.resp[0] = vif.master_driver_cb.bresp;
@@ -125,7 +128,7 @@ class axi4_driver #(
     
     for(int i = 0; i <= item.len; i++) begin
       do @(vif.master_driver_cb);
-      while(!(vif.master_driver_cb.rvalid && vif.master_driver_cb.rready));
+      while(!vif.master_driver_cb.rvalid);
       
       item.data[i] = vif.master_driver_cb.rdata;
       item.resp[i] = vif.master_driver_cb.rresp;

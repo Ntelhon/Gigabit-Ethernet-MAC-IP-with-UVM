@@ -23,6 +23,9 @@ class axi4_monitor #(
     super.build_phase(phase);
     if(!uvm_config_db#(axi4_config)::get(this, "", "cfg", cfg))
       `uvm_fatal("NOCFG", "Config object not found")
+
+    if(!uvm_config_db#(virtual axi4_if#(ADDR_WIDTH, DATA_WIDTH, ID_WIDTH, USER_WIDTH))::get(this, "", "vif", vif))
+      `uvm_fatal("NOVIF", "Virtual interface not set for axi4_monitor")
   endfunction
 
   task run_phase(uvm_phase phase);

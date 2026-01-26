@@ -20,9 +20,12 @@ class gmii_agent extends uvm_agent;
       `uvm_fatal("NOCFG", "Config object not found")
     
     monitor = gmii_monitor::type_id::create("monitor", this);
+    uvm_config_db#(gmii_config)::set(this, "monitor", "cfg", cfg);
     
     if(cfg.is_active == UVM_ACTIVE) begin
       driver    = gmii_driver::type_id::create("driver", this);
+      uvm_config_db#(gmii_config)::set(this, "driver", "cfg", cfg);
+      
       sequencer = gmii_sequencer::type_id::create("sequencer", this);
     end
   endfunction

@@ -57,7 +57,7 @@ module eth_tb_top;
     uvm_config_db#(virtual axi_stream_if#(32,1,1,1))::set(null, "*.dma_env_h.axis_tx_agent*", "vif", axis_mac_rx_if);
     uvm_config_db#(virtual axi_stream_if#(32,1,1,1))::set(null, "*.dma_env_h.axis_rx_agent*", "vif", axis_mac_tx_if);
     
-    uvm_config_db#(virtual axi4_if#(32,64,4,1))::set(null, "*.dma_env_h.axi4_agent*", "vif", axi4_mem_if);
+    uvm_config_db#(virtual axi4_if#(32,64,4,1))::set(null, "*.dma_env_h.axi4_master_agent*", "vif", axi4_mem_if);
     uvm_config_db#(virtual axi_lite_if#(32,32))::set(null, "*.axi_lite_agent_h*", "vif", axi_lite_if);
     
     uvm_config_db#(virtual gmii_if)::set(null, "*.mac_env_h.gmii_tx_agent*", "vif", gmii_if);
@@ -69,7 +69,7 @@ module eth_tb_top;
   
   // Waveform dumping
   initial begin
-    $fsdbDumpvars(0, eth_tb_top);
+    // $fsdbDumpvars(0, eth_tb_top);
     // Or: $dumpfile("waves.vcd"); $dumpvars(0, eth_tb_top);
   end
 

@@ -80,7 +80,7 @@ class eth_controller_env extends uvm_env;
       end
       
       if(cfg.enable_dma) begin
-        dma_env_h.axi4_agent.monitor.ap.connect(scoreboard.axi4_imp);
+        dma_env_h.axi4_master_agent.monitor.ap.connect(scoreboard.axi4_imp);
       end
     end
   endfunction

@@ -14,6 +14,9 @@ class gmii_driver extends uvm_driver #(gmii_item);
     super.build_phase(phase);
     if(!uvm_config_db#(gmii_config)::get(this, "", "cfg", cfg))
       `uvm_fatal("NOCFG", "Config object not found")
+    
+    if(!uvm_config_db#(virtual gmii_if)::get(this, "", "vif", vif))
+      `uvm_fatal("NOVIF", "Virtual interface not set for gmii_driver")
   endfunction
 
   task run_phase(uvm_phase phase);

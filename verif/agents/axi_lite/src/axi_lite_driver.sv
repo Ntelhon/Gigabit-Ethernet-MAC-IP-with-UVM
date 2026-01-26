@@ -18,6 +18,9 @@ class axi_lite_driver #(
     super.build_phase(phase);
     if(!uvm_config_db#(axi_lite_config)::get(this, "", "cfg", cfg))
       `uvm_fatal("NOCFG", "Config object not found")
+
+    if(!uvm_config_db#(virtual axi_lite_if#(ADDR_WIDTH, DATA_WIDTH))::get(this, "", "vif", vif))
+      `uvm_fatal("NOVIF", "Virtual interface not set for axi_lite_driver")
   endfunction
 
   task run_phase(uvm_phase phase);
