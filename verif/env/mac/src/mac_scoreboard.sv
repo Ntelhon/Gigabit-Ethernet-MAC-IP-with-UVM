@@ -4,10 +4,10 @@ class mac_scoreboard extends uvm_scoreboard;
   `uvm_component_utils(mac_scoreboard)
 
   // Analysis ports for MAC Scoreboard
-  uvm_analysis_imp_gmii#(gmii_item, mac_scoreboard)                     gmii_rx_imp;
+  uvm_analysis_imp_gmii_rx#(gmii_item, mac_scoreboard)                     gmii_rx_imp;
   uvm_analysis_imp_axis_tx#(axi_stream_item#(32,1,1,1), mac_scoreboard)    axis_tx_imp;
 
-  uvm_analysis_imp_gmii#(gmii_item, mac_scoreboard)                     gmii_tx_imp;
+  uvm_analysis_imp_gmii_tx#(gmii_item, mac_scoreboard)                     gmii_tx_imp;
   uvm_analysis_imp_axis_rx#(axi_stream_item#(32,1,1,1), mac_scoreboard)    axis_rx_imp;
 
   // Queues for checking

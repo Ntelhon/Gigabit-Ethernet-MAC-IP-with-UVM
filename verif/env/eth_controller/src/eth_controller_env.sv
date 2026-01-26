@@ -75,8 +75,8 @@ class eth_controller_env extends uvm_env;
     if(cfg.enable_system_scoreboard) begin
       if(cfg.enable_mac) begin
         mac_env_h.gmii_tx_agent.monitor.ap.connect(scoreboard.gmii_imp);
-        mac_env_h.tx_stream_agent.monitor.ap.connect(scoreboard.axis_mac_tx_imp);
-        mac_env_h.rx_stream_agent.monitor.ap.connect(scoreboard.axis_mac_rx_imp);
+        //mac_env_h.tx_stream_agent.monitor.ap.connect(scoreboard.axis_mac_tx_imp);
+        //mac_env_h.rx_stream_agent.monitor.ap.connect(scoreboard.axis_mac_rx_imp);
       end
       
       if(cfg.enable_dma) begin
