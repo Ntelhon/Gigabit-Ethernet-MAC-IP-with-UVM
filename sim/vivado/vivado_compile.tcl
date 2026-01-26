@@ -8,7 +8,7 @@
 #
 # Usage:
 #   vivado -mode batch -source vivado_compile.tcl
-#   vivado -mode batch -source vivado_compile.tcl -tclargs -top tb_top
+#   vivado -mode batch -source vivado_compile.tcl -tclargs -top eth_tb_top
 #
 # Requirements:
 #   - Vivado 2022.1 or later (UVM 1.2 built-in)
@@ -21,7 +21,7 @@
 #-------------------------------------------------------------------------------
 # Parse Command Line Arguments
 #-------------------------------------------------------------------------------
-set top_module "tb_top"
+set top_module "eth_tb_top"
 set project_name "mac_sim"
 set part "xc7a100tcsg324-1"  ;# Default part (can be overridden)
 
@@ -53,12 +53,12 @@ set project_root [file normalize "$script_dir/../.."]
 # Source directories
 set rtl_mac_dir    "$project_root/rtl/mac_core"
 set rtl_phy_dir    "$project_root/rtl/phy_if"
-set tb_agents_dir  "$project_root/verif/tb/agents"
-set tb_env_dir     "$project_root/verif/tb/env"
-set tb_seq_dir     "$project_root/verif/tb/sequences"
-set tb_tests_dir   "$project_root/verif/tb/tests"
-set tb_top_dir     "$project_root/verif/tb/top"
-set tb_if_dir      "$project_root/verif/tb/agents"
+set tb_agents_dir  "$project_root/verif/agents"
+set tb_env_dir     "$project_root/verif/env"
+set tb_seq_dir     "$project_root/verif/sequences"
+set tb_tests_dir   "$project_root/verif/tests"
+set tb_top_dir     "$project_root/verif/top"
+set tb_if_dir      "$project_root/verif/agents"
 
 # Output directory
 set sim_dir        "$project_root/sim/vivado"
@@ -118,19 +118,30 @@ puts "Collecting testbench sources..."
 
 set tb_files [list]
 
+# AXI-Stream Agent Packace
 foreach f [glob -nocomplain -directory $tb_agents_dir/axi_stream *.sv] { lappend tb_files $f }
+
+# AXI4 Agent Packace
 foreach f [glob -nocomplain -directory $tb_agents_dir/axi4 *.sv] { lappend tb_files $f }
+
+# AXI-Lite Agent Packace
+foreach f [glob -nocomplain -directory $tb_agents_dir/axi_lite *.sv] { lappend tb_files $f }
+
+# GMII Agent Packace
 foreach f [glob -nocomplain -directory $tb_agents_dir/gmii *.sv] { lappend tb_files $f }
+
+# Sequence Packace
+foreach f [glob -nocomplain -directory $tb_seq_dir *.sv] { lappend tb_files $f }
+
+# Environment Packace
 foreach f [glob -nocomplain -directory $tb_env_dir/mac *.sv] { lappend tb_files $f }
 foreach f [glob -nocomplain -directory $tb_env_dir/dma *.sv] { lappend tb_files $f }
 foreach f [glob -nocomplain -directory $tb_env_dir/eth_controller *.sv] { lappend tb_files $f }
-foreach f [glob -nocomplain -directory $tb_env_dir/eth_controller/axi_lite_agent *.sv] { lappend tb_files $f }
-foreach f [glob -nocomplain -directory $tb_seq_dir/lib *.sv] { lappend tb_files $f }
-foreach f [glob -nocomplain -directory $tb_seq_dir/virtual *.sv] { lappend tb_files $f }
-foreach f [glob -nocomplain -directory $tb_tests_dir/base *.sv] { lappend tb_files $f }
-foreach f [glob -nocomplain -directory $tb_tests_dir/system_tests *.sv] { lappend tb_files $f }
-foreach f [glob -nocomplain -directory $tb_tests_dir/mac_tests *.sv] { lappend tb_files $f }
-foreach f [glob -nocomplain -directory $tb_tests_dir/dma_tests *.sv] { lappend tb_files $f }
+
+# Test Packace
+foreach f [glob -nocomplain -directory $tb_tests_dir *.sv] { lappend tb_files $f }
+
+# Testbench
 foreach f [glob -nocomplain -directory $tb_top_dir *.sv] { lappend tb_files $f }
 
 puts "Found [llength $tb_files] testbench files"
@@ -164,19 +175,43 @@ puts "Setting include directories..."
 set include_dirs [list \
     $rtl_mac_dir \
     $rtl_phy_dir \
+    "$tb_agents_dir/axi_stream/include" \
+    "$tb_agents_dir/axi_stream/src" \
     "$tb_agents_dir/axi_stream" \
+    "$tb_agents_dir/axi4/include" \
+    "$tb_agents_dir/axi4/src" \
     "$tb_agents_dir/axi4" \
+    "$tb_agents_dir/axi_lite/include" \
+    "$tb_agents_dir/axi_lite/src" \
+    "$tb_agents_dir/axi_lite" \
+    "$tb_agents_dir/gmii/include" \
+    "$tb_agents_dir/gmii/src" \
     "$tb_agents_dir/gmii" \
+    "$tb_env_dir/mac/include" \
+    "$tb_env_dir/mac/src" \
     "$tb_env_dir/mac" \
+    "$tb_env_dir/dma/include" \
+    "$tb_env_dir/dma/src" \
     "$tb_env_dir/dma" \
+    "$tb_env_dir/eth_controller/include" \
+    "$tb_env_dir/eth_controller/src" \
     "$tb_env_dir/eth_controller" \
-    "$tb_env_dir/eth_controller/axi_lite_agent" \
     "$tb_seq_dir/lib" \
     "$tb_seq_dir/virtual" \
-    "$tb_tests_dir/base" \
-    "$tb_tests_dir/system_tests" \
-    "$tb_tests_dir/mac_tests" \
-    "$tb_tests_dir/dma_tests" \
+    "$tb_env_dir/mac/include" \
+    "$tb_env_dir/mac/src" \
+    "$tb_env_dir/mac" \
+    "$tb_env_dir/dma/include" \
+    "$tb_env_dir/dma/src" \
+    "$tb_env_dir/dma" \
+    "$tb_env_dir/eth_controller/include" \
+    "$tb_env_dir/eth_controller/src" \
+    "$tb_env_dir/eth_controller" \
+    "$tb_tests_dir" \
+    "$tb_tests_dir/src/base" \
+    "$tb_tests_dir/src/system_tests" \
+    "$tb_tests_dir/src/mac_tests" \
+    "$tb_tests_dir/src/dma_tests" \
     $tb_top_dir \
     "$project_root/rtl" \
 ]

@@ -33,7 +33,7 @@ set random_seed    1
 set sim_timeout    1000000
 set open_gui       0
 set project_name   "mac_sim"
-set top_module     "tb_top"
+set top_module     "eth_tb_top"
 
 #-------------------------------------------------------------------------------
 # Parse Command Line Arguments
