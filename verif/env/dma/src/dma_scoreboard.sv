@@ -2,6 +2,7 @@
 class dma_scoreboard extends uvm_scoreboard;
 
   `uvm_component_utils(dma_scoreboard)
+  `uvm_analysis_imp_decl(_dma_axi4)
 
   // Analysis ports for DMA Scoreboard
   uvm_analysis_imp_dma_axi4#(axi4_item#(32,64,4,1), dma_scoreboard)     dma_axi4_imp;
@@ -27,7 +28,7 @@ class dma_scoreboard extends uvm_scoreboard;
     end
   endfunction
 
-  function void write_axi4(axi4_item#(32,64,4,1) item);
+  function void write_dma_axi4(axi4_item#(32,64,4,1) item);
     byte unsigned byte_data[];
     int byte_idx = 0;
     
@@ -59,5 +60,3 @@ class dma_scoreboard extends uvm_scoreboard;
   endfunction
 
 endclass : dma_scoreboard
-
-`uvm_analysis_imp_decl(_dma_axi4)

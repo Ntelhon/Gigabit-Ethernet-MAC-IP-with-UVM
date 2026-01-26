@@ -8,9 +8,6 @@ package eth_environment_pkg;
   import axi4_pkg::*;
   import axi_lite_pkg::*;
   import gmii_pkg::*;
-  
-  // Import sequence package
-  import eth_seq_pkg::*;
 
   // MAC Environment Components
   `include "../mac/src/mac_config.sv"

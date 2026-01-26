@@ -28,6 +28,12 @@ package eth_seq_pkg;
   import axi4_pkg::*;
   import axi_lite_pkg::*;
   import gmii_pkg::*;
+
+  // Import environment package (for configs, etc.)
+  //import mac_subenvironment_pkg::*;
+  //import dma_subenvironment_pkg::*;
+
+  import eth_environment_pkg::*;
   
   // ==========================================
   // Sequence Library - Protocol-Specific

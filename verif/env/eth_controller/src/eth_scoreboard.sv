@@ -1,7 +1,12 @@
 // File: tb/env/eth_controller/eth_scoreboard.sv
+
 class eth_scoreboard extends uvm_scoreboard;
 
   `uvm_component_utils(eth_scoreboard)
+  `uvm_analysis_imp_decl(_gmii)
+  `uvm_analysis_imp_decl(_axi4)
+  `uvm_analysis_imp_decl(_axis_mac_tx)
+  `uvm_analysis_imp_decl(_axis_mac_rx)
 
   // Analysis ports for end-to-end checking
   uvm_analysis_imp_gmii#(gmii_item, eth_scoreboard)                     gmii_imp;
@@ -102,8 +107,3 @@ class eth_scoreboard extends uvm_scoreboard;
   endfunction
 
 endclass : eth_scoreboard
-
-`uvm_analysis_imp_decl(_gmii)
-`uvm_analysis_imp_decl(_axi4)
-`uvm_analysis_imp_decl(_axis_mac_tx)
-`uvm_analysis_imp_decl(_axis_mac_rx)

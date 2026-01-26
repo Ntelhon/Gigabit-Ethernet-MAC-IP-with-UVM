@@ -118,6 +118,12 @@ puts "Collecting testbench sources..."
 
 set tb_files [list]
 
+# Agent Interfaces
+lappend tb_files $tb_agents_dir/axi_stream/src/axi_stream_if.sv
+lappend tb_files $tb_agents_dir/axi4/src/axi4_if.sv
+lappend tb_files $tb_agents_dir/axi_lite/src/axi_lite_if.sv
+lappend tb_files $tb_agents_dir/gmii/src/gmii_if.sv
+
 # AXI-Stream Agent Packace
 foreach f [glob -nocomplain -directory $tb_agents_dir/axi_stream *.sv] { lappend tb_files $f }
 

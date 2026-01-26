@@ -2,6 +2,10 @@
 class mac_scoreboard extends uvm_scoreboard;
 
   `uvm_component_utils(mac_scoreboard)
+  `uvm_analysis_imp_decl(_gmii_rx)
+  `uvm_analysis_imp_decl(_axis_tx)
+  `uvm_analysis_imp_decl(_gmii_tx)
+  `uvm_analysis_imp_decl(_axis_rx)
 
   // Analysis ports for MAC Scoreboard
   uvm_analysis_imp_gmii_rx#(gmii_item, mac_scoreboard)                     gmii_rx_imp;
@@ -121,8 +125,3 @@ class mac_scoreboard extends uvm_scoreboard;
   endfunction
 
 endclass : mac_scoreboard
-
-`uvm_analysis_imp_decl(_gmii_rx)
-`uvm_analysis_imp_decl(_axis_tx)
-`uvm_analysis_imp_decl(_gmii_tx)
-`uvm_analysis_imp_decl(_axis_rx)

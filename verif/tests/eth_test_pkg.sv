@@ -5,6 +5,9 @@ package eth_test_pkg;
   
   // Import environment package
   import eth_environment_pkg::*;
+
+  // Import sequence package
+  import eth_seq_pkg::*;
   
   // Base Test Components
   `include "src/base/eth_base_test.sv"
