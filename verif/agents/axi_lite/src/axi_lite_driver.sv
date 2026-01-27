@@ -28,12 +28,18 @@ class axi_lite_driver #(
     
     forever begin
       seq_item_port.get_next_item(req);
+
+      `uvm_info("AXI_LITE_DRV", $sformatf("Driving AXI Lite %s: addr=0x%0h, data=0x%0h",
+                  (req.trans_type == AXI_LITE_WRITE) ? "WRITE" : "READ", req.addr, req.data), UVM_LOW)
       
       if(req.trans_type == AXI_LITE_WRITE)
         drive_write(req);
       else
         drive_read(req);
-      
+
+      `uvm_info("AXI_LITE_DRV", $sformatf("Finished AXI Lite %s: addr=0x%0h, data=0x%0h",
+                  (req.trans_type == AXI_LITE_WRITE) ? "WRITE" : "READ", req.addr, req.data), UVM_LOW)
+
       seq_item_port.item_done();
     end
   endtask
@@ -57,35 +63,43 @@ class axi_lite_driver #(
     fork
       // Write address channel
       begin
+        `uvm_info("AXI_LITE_DRV", "test1", UVM_LOW)
         repeat(item.addr_delay) @(vif.master_driver_cb);
+        `uvm_info("AXI_LITE_DRV", "test2", UVM_LOW)
         vif.master_driver_cb.awvalid <= 1'b1;
         vif.master_driver_cb.awaddr  <= item.addr;
         vif.master_driver_cb.awprot  <= item.prot;
         
         do @(vif.master_driver_cb);
         while(vif.master_driver_cb.awready !== 1'b1);
+        `uvm_info("AXI_LITE_DRV", "test3", UVM_LOW)
         
         vif.master_driver_cb.awvalid <= 1'b0;
       end
       
       // Write data channel
       begin
+        `uvm_info("AXI_LITE_DRV", "testA", UVM_LOW)
         repeat(item.data_delay) @(vif.master_driver_cb);
+        `uvm_info("AXI_LITE_DRV", "testB", UVM_LOW)
         vif.master_driver_cb.wvalid <= 1'b1;
         vif.master_driver_cb.wdata  <= item.data;
         vif.master_driver_cb.wstrb  <= item.strb;
         
         do @(vif.master_driver_cb);
         while(vif.master_driver_cb.wready !== 1'b1);
+        `uvm_info("AXI_LITE_DRV", "testC", UVM_LOW)
         
         vif.master_driver_cb.wvalid <= 1'b0;
       end
     join
     
+    `uvm_info("AXI_LITE_DRV", "testK", UVM_LOW)
     // Write response channel
     vif.master_driver_cb.bready <= 1'b1;
     do @(vif.master_driver_cb);
     while(vif.master_driver_cb.bvalid !== 1'b1);
+    `uvm_info("AXI_LITE_DRV", "testL", UVM_LOW)
     
     item.resp = vif.master_driver_cb.bresp;
     vif.master_driver_cb.bready <= 1'b0;

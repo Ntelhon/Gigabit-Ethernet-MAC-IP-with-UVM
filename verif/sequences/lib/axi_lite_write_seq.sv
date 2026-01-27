@@ -13,6 +13,8 @@ class axi_lite_write_seq extends axi_lite_base_seq;
 
   task body();
     axi_lite_item#(32,32) req;
+
+    `uvm_info("AXI_LITE_WR_SEQ", $sformatf("Starting AXI Lite Write Sequence: addr=0x%0h, data=0x%0h", addr, data), UVM_LOW)
     
     req = axi_lite_item#(32,32)::type_id::create("req");
     start_item(req);

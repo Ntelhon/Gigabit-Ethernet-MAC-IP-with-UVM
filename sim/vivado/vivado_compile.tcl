@@ -52,7 +52,9 @@ set project_root [file normalize "$script_dir/../.."]
 
 # Source directories
 set rtl_mac_dir    "$project_root/rtl/mac_core"
+set rtl_dma_dir    "$project_root/rtl/dma"
 set rtl_phy_dir    "$project_root/rtl/phy_if"
+set rtl_top        "$project_root/rtl"
 set tb_agents_dir  "$project_root/verif/agents"
 set tb_env_dir     "$project_root/verif/env"
 set tb_seq_dir     "$project_root/verif/sequences"
@@ -104,8 +106,18 @@ foreach f [glob -nocomplain -directory $rtl_mac_dir *.v] {
     lappend rtl_files $f
 }
 
+# DMA RTL
+foreach f [glob -nocomplain -directory $rtl_dma_dir *.v] {
+    lappend rtl_files $f
+}
+
 # PHY Interface RTL
 foreach f [glob -nocomplain -directory $rtl_phy_dir *.v] {
+    lappend rtl_files $f
+}
+
+# Ethernet Top RTL
+foreach f [glob -nocomplain -directory $rtl_top *.v] {
     lappend rtl_files $f
 }
 
