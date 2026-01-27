@@ -222,7 +222,7 @@ module eth_controller_top #(
     wire        mac_rx_axis_tready;
     wire [7:0]  mac_rx_axis_tdata;
     wire        mac_rx_axis_tlast;
-    wire [1:0]  mac_rx_axis_tuser;
+    wire        mac_rx_axis_tuser;
     
     //--------------------------------------------------------------------------
     // DMA AXI-Stream Signals
@@ -237,7 +237,7 @@ module eth_controller_top #(
     wire        dma_rx_axis_tready;
     wire [7:0]  dma_rx_axis_tdata;
     wire        dma_rx_axis_tlast;
-    wire [1:0]  dma_rx_axis_tuser;
+    wire        dma_rx_axis_tuser;
     
     //--------------------------------------------------------------------------
     // Interrupt Signals
@@ -329,7 +329,9 @@ module eth_controller_top #(
         .sys_clk        (sys_clk),
         .sys_rst_n      (sys_rst_n),
         .gtx_clk        (gtx_clk),
+        .gtx_rst_n      (sys_rst_n),  // Assume same reset for GTX
         .rx_clk         (rx_clk),
+        .rx_rst_n       (sys_rst_n),  // Assume same reset for RX
         
         // AXI-Lite Configuration
         .s_axi_awvalid  (mac_awvalid),

@@ -120,7 +120,7 @@ module mac_top #(
     output wire [7:0]                   rx_axis_tdata,  // RX data
     output wire                         rx_axis_tvalid, // RX data valid
     output wire                         rx_axis_tlast,  // RX last (EOF)
-    output wire [1:0]                   rx_axis_tuser,  // RX user {frame_bad, frame_good}
+    output wire                         rx_axis_tuser,  // RX user {frame_bad}
     input  wire                         rx_axis_tready, // RX ready
 
     //==========================================================================
@@ -382,7 +382,7 @@ module mac_top #(
     //==========================================================================
     assign rx_axis_tdata  = rx_fifo_dout[7:0];
     assign rx_axis_tlast  = rx_fifo_dout[8];
-    assign rx_axis_tuser  = rx_fifo_dout[11:10];  // {frame_bad, frame_good}
+    assign rx_axis_tuser  = rx_fifo_dout[11];  // {frame_bad}
     assign rx_axis_tvalid = !rx_fifo_empty;
     assign rx_fifo_rd_en  = rx_axis_tready && !rx_fifo_empty;
 

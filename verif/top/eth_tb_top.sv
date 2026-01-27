@@ -11,7 +11,7 @@ module eth_tb_top;
   
   // Interfaces
   axi_stream_if#(32,1,1,1) axis_mac_tx_if(clk_axi, rst_n);
-  axi_stream_if#(32,2,1,1) axis_mac_rx_if(clk_axi, rst_n);
+  axi_stream_if#(32,1,1,1) axis_mac_rx_if(clk_axi, rst_n);
   axi4_if#(32,64,4,1)      axi4_mem_if(clk_axi, rst_n);
   axi_lite_if#(32,32)      axi_lite_if(clk_axi, rst_n);
   gmii_if                  gmii_if(clk_125m, clk_125m, rst_n);
@@ -148,9 +148,9 @@ module eth_tb_top;
   // Interface registration
   initial begin
     uvm_config_db#(virtual axi_stream_if#(8,1,1,1))::set(null, "*.mac_env_h.tx_stream_agent*", "vif", axis_mac_tx_if);
-    uvm_config_db#(virtual axi_stream_if#(8,2,1,1))::set(null, "*.mac_env_h.rx_stream_agent*", "vif", axis_mac_rx_if);
+    uvm_config_db#(virtual axi_stream_if#(8,1,1,1))::set(null, "*.mac_env_h.rx_stream_agent*", "vif", axis_mac_rx_if);
     uvm_config_db#(virtual axi_stream_if#(8,1,1,1))::set(null, "*.dma_env_h.axis_tx_agent*", "vif", axis_mac_rx_if);
-    uvm_config_db#(virtual axi_stream_if#(8,2,1,1))::set(null, "*.dma_env_h.axis_rx_agent*", "vif", axis_mac_tx_if);
+    uvm_config_db#(virtual axi_stream_if#(8,1,1,1))::set(null, "*.dma_env_h.axis_rx_agent*", "vif", axis_mac_tx_if);
     
     uvm_config_db#(virtual axi4_if#(32,64,4,1))::set(null, "*.dma_env_h.axi4_master_agent*", "vif", axi4_mem_if);
     uvm_config_db#(virtual axi_lite_if#(32,32))::set(null, "*.axi_lite_agent_h*", "vif", axi_lite_if);
