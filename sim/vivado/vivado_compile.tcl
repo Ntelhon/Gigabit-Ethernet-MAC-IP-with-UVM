@@ -54,7 +54,7 @@ set project_root [file normalize "$script_dir/../.."]
 set rtl_mac_dir    "$project_root/rtl/mac_core"
 set rtl_dma_dir    "$project_root/rtl/dma"
 set rtl_phy_dir    "$project_root/rtl/phy_if"
-set rtl_top        "$project_root/rtl"
+set rtl_dir        "$project_root/rtl"
 set tb_agents_dir  "$project_root/verif/agents"
 set tb_env_dir     "$project_root/verif/env"
 set tb_seq_dir     "$project_root/verif/sequences"
@@ -117,7 +117,7 @@ foreach f [glob -nocomplain -directory $rtl_phy_dir *.v] {
 }
 
 # Ethernet Top RTL
-foreach f [glob -nocomplain -directory $rtl_top *.v] {
+foreach f [glob -nocomplain -directory $rtl_dir *.v] {
     lappend rtl_files $f
 }
 
@@ -192,7 +192,9 @@ puts "Setting include directories..."
 
 set include_dirs [list \
     $rtl_mac_dir \
+    $rtl_dma_dir \
     $rtl_phy_dir \
+    $rtl_dir \
     "$tb_agents_dir/axi_stream/include" \
     "$tb_agents_dir/axi_stream/src" \
     "$tb_agents_dir/axi_stream" \

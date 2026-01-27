@@ -18,6 +18,24 @@ class eth_base_vseq extends uvm_sequence;
     cfg = p_sequencer.cfg;
   endtask
 
+  // Helper: Write register
+  task write_reg(bit [31:0] addr, bit [31:0] data);
+    axi_lite_write_seq wr_seq;
+    wr_seq = axi_lite_write_seq::type_id::create("wr_seq");
+    wr_seq.addr = addr;
+    wr_seq.data = data;
+    wr_seq.start(p_sequencer.axi_lite_sqr);
+  endtask
+
+  // Helper: Read register
+  task read_reg(bit [31:0] addr, output bit [31:0] data);
+    axi_lite_read_seq rd_seq;
+    rd_seq = axi_lite_read_seq::type_id::create("rd_seq");
+    rd_seq.addr = addr;
+    rd_seq.start(p_sequencer.axi_lite_sqr);
+    data = rd_seq.read_data;
+  endtask
+
   // Helper: Write MAC register
   task write_mac_reg(bit [31:0] offset, bit [31:0] data);
     axi_lite_write_seq wr_seq;

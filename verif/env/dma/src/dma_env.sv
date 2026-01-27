@@ -7,10 +7,10 @@ class dma_env extends uvm_env;
   dma_config cfg;
   
   // Agents
-  axi4_agent#(32,64,4,1)      axi4_master_agent; // Memory AXI4 Master
-  axi_stream_agent#(32,1,1,1) axis_tx_agent;  // DMA → MAC
-  axi_stream_agent#(32,1,1,1) axis_rx_agent;  // MAC → DMA
-  
+  axi4_agent#(`AXI4_PARAMS)             axi4_master_agent; // Memory AXI4 Master
+  axi_stream_agent#(`AXI_STREAM_PARAMS) axis_tx_agent;  // DMA → MAC
+  axi_stream_agent#(`AXI_STREAM_PARAMS) axis_rx_agent;  // MAC → DMA
+
   // Memory model
   memory_model mem;
   
@@ -36,10 +36,10 @@ class dma_env extends uvm_env;
     uvm_config_db#(axi_stream_config)::set(this, "axis_tx_agent", "cfg", cfg.axis_tx_cfg);
     uvm_config_db#(axi_stream_config)::set(this, "axis_rx_agent", "cfg", cfg.axis_rx_cfg);
 
-    axi4_master_agent = axi4_agent#(32,64,4,1)::type_id::create("axi4_master_agent", this);
-    axis_tx_agent = axi_stream_agent#(32,1,1,1)::type_id::create("axis_tx_agent", this);
-    axis_rx_agent = axi_stream_agent#(32,1,1,1)::type_id::create("axis_rx_agent", this);
-    
+    axi4_master_agent = axi4_agent#(`AXI4_PARAMS)::type_id::create("axi4_master_agent", this);
+    axis_tx_agent = axi_stream_agent#(`AXI_STREAM_PARAMS)::type_id::create("axis_tx_agent", this);
+    axis_rx_agent = axi_stream_agent#(`AXI_STREAM_PARAMS)::type_id::create("axis_rx_agent", this);
+
     if(cfg.enable_scoreboard)
       scoreboard = dma_scoreboard::type_id::create("scoreboard", this);
   endfunction

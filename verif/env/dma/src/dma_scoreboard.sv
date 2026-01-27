@@ -5,7 +5,7 @@ class dma_scoreboard extends uvm_scoreboard;
   `uvm_analysis_imp_decl(_dma_axi4)
 
   // Analysis ports for DMA Scoreboard
-  uvm_analysis_imp_dma_axi4#(axi4_item#(32,64,4,1), dma_scoreboard)     dma_axi4_imp;
+  uvm_analysis_imp_dma_axi4#(axi4_item#(`AXI4_PARAMS), dma_scoreboard)     dma_axi4_imp;
 
   // Reference to memory model
   memory_model mem;
@@ -28,13 +28,13 @@ class dma_scoreboard extends uvm_scoreboard;
     end
   endfunction
 
-  function void write_dma_axi4(axi4_item#(32,64,4,1) item);
+  function void write_dma_axi4(axi4_item#(`AXI4_PARAMS) item);
     byte unsigned byte_data[];
     int byte_idx = 0;
     
     if(item.trans_type == AXI4_WRITE) begin
       // Convert AXI4 data to byte array
-      byte_data = new[item.data.size() * 8];  // 64-bit data width = 8 bytes
+      byte_data = new[item.data.size() * AXI4_DATA_WIDTH/8];  // 64-bit data width = 8 bytes
       foreach(item.data[i]) begin
         for(int j = 0; j < 8; j++) begin
           if(item.strb[i][j])

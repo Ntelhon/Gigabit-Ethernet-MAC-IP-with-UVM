@@ -1,7 +1,7 @@
-# Gigabit Ethernet MAC IP - Accessible Registers
+# Ethernet Controller IP - Accessible Registers
 
-**Document Version:** 1.0  
-**IP Version:** 1.0.0  
+**Document Version:** 2.0  
+**IP Version:** 2.0.0  
 **Date:** January 2026
 
 ---
@@ -10,7 +10,7 @@
 
 1. [Overview](#1-overview)
 2. [Register Map Summary](#2-register-map-summary)
-3. [Register Descriptions](#3-register-descriptions)
+3. [MAC Register Descriptions](#3-mac-register-descriptions)
    - [MAC_ADDR_LO](#31-mac_addr_lo---mac-address-low)
    - [MAC_ADDR_HI](#32-mac_addr_hi---mac-address-high)
    - [CONTROL](#33-control---control-register)
@@ -21,15 +21,19 @@
    - [RX_FRAME_CNT](#38-rx_frame_cnt---rx-frame-counter)
    - [RX_ERR_CNT](#39-rx_err_cnt---rx-error-counter)
    - [VERSION](#310-version---version-register)
-4. [Access Types](#4-access-types)
-5. [Reset Behavior](#5-reset-behavior)
-6. [Programming Guidelines](#6-programming-guidelines)
+4. [DMA Register Descriptions](#4-dma-register-descriptions)
+   - [TX DMA Registers](#41-tx-dma-registers)
+   - [RX DMA Registers](#42-rx-dma-registers)
+   - [DMA Interrupt Registers](#43-dma-interrupt-registers)
+5. [Access Types](#5-access-types)
+6. [Reset Behavior](#6-reset-behavior)
+7. [Programming Guidelines](#7-programming-guidelines)
 
 ---
 
 ## 1. Overview
 
-This document describes the accessible registers of the Gigabit Ethernet MAC IP. All registers are accessible via the AXI4-Lite slave interface. The register interface operates in the system clock domain (`sys_clk`).
+This document describes the accessible registers of the Ethernet Controller IP. The IP includes the Gigabit Ethernet MAC and an optional DMA subsystem (enabled via the `DMA_ENABLE` parameter). All registers are accessible via a single AXI4-Lite slave interface. The register interface operates in the system clock domain (`sys_clk`).
 
 ### Interface Specifications
 
@@ -37,44 +41,82 @@ This document describes the accessible registers of the Gigabit Ethernet MAC IP.
 |-----------|-------|
 | Interface Protocol | AXI4-Lite |
 | Data Width | 32 bits |
-| Address Width | 8 bits (configurable) |
+| Address Width | 10 bits |
 | Byte Addressing | Yes (word-aligned) |
 | Endianness | Little-endian |
 | Clock Domain | sys_clk |
 
 ### Register Space
 
-| Parameter | Value |
-|-----------|-------|
-| Base Address | Configurable by SoC |
-| Address Range | 0x00 - 0x24 |
-| Total Registers | 10 |
-| Reserved Space | 0x28 - 0xFF |
+| Region | Address Range | Description |
+|--------|---------------|-------------|
+| MAC Registers | 0x000 - 0x1FF | MAC configuration and status |
+| DMA Registers | 0x200 - 0x3FF | DMA configuration (when DMA_ENABLE=1) |
+
+**Note:** When `DMA_ENABLE=0`, accesses to addresses 0x200-0x3FF return DECERR.
 
 ---
 
 ## 2. Register Map Summary
 
+### MAC Registers (0x000 - 0x1FF)
+
 | Offset | Name | Width | Access | Reset Value | Description |
 |--------|------|-------|--------|-------------|-------------|
-| 0x00 | MAC_ADDR_LO | 32 | RW | 0x00000000 | MAC Address [31:0] |
-| 0x04 | MAC_ADDR_HI | 16 | RW | 0x0000 | MAC Address [47:32] |
-| 0x08 | CONTROL | 2 | RW | 0x00 | TX/RX Enable Control |
-| 0x0C | STATUS | 2 | RO | 0x00 | TX/RX Active Status |
-| 0x10 | INT_STATUS | 4 | RW1C | 0x0 | Interrupt Status |
-| 0x14 | INT_MASK | 4 | RW | 0x0 | Interrupt Mask |
-| 0x18 | TX_FRAME_CNT | 32 | RO | 0x00000000 | TX Frame Counter |
-| 0x1C | RX_FRAME_CNT | 32 | RO | 0x00000000 | RX Frame Counter |
-| 0x20 | RX_ERR_CNT | 32 | RO | 0x00000000 | RX Error Counter |
-| 0x24 | VERSION | 32 | RO | 0x00010000 | IP Version |
+| 0x000 | MAC_ADDR_LO | 32 | RW | 0x00000000 | MAC Address [31:0] |
+| 0x004 | MAC_ADDR_HI | 16 | RW | 0x0000 | MAC Address [47:32] |
+| 0x008 | CONTROL | 2 | RW | 0x00 | TX/RX Enable Control |
+| 0x00C | STATUS | 2 | RO | 0x00 | TX/RX Active Status |
+| 0x010 | INT_STATUS | 4 | RW1C | 0x0 | Interrupt Status |
+| 0x014 | INT_MASK | 4 | RW | 0x0 | Interrupt Mask |
+| 0x018 | TX_FRAME_CNT | 32 | RO | 0x00000000 | TX Frame Counter |
+| 0x01C | RX_FRAME_CNT | 32 | RO | 0x00000000 | RX Frame Counter |
+| 0x020 | RX_ERR_CNT | 32 | RO | 0x00000000 | RX Error Counter |
+| 0x024 | VERSION | 32 | RO | 0x00020000 | IP Version |
+
+### DMA Registers (0x200 - 0x3FF, when DMA_ENABLE=1)
+
+#### TX DMA Registers (0x200 - 0x23F)
+
+| Offset | Name | Width | Access | Reset Value | Description |
+|--------|------|-------|--------|-------------|-------------|
+| 0x200 | DMA_TX_CTRL | 3 | RW | 0x0 | TX DMA Control |
+| 0x204 | DMA_TX_STATUS | 3 | RO | 0x0 | TX DMA Status |
+| 0x208 | DMA_TX_DESC_LO | 32 | RW | 0x00000000 | TX Descriptor Ring Base Low |
+| 0x20C | DMA_TX_DESC_HI | 32 | RW | 0x00000000 | TX Descriptor Ring Base High |
+| 0x210 | DMA_TX_RING_SIZE | 16 | RW | 0x0100 | TX Ring Size (descriptors) |
+| 0x214 | DMA_TX_HEAD_PTR | 16 | RW | 0x0000 | TX Head Pointer (SW writes) |
+| 0x218 | DMA_TX_TAIL_PTR | 16 | RO | 0x0000 | TX Tail Pointer (HW updates) |
+| 0x21C | DMA_TX_PKT_CNT | 32 | RO | 0x00000000 | TX DMA Packet Counter |
+
+#### RX DMA Registers (0x240 - 0x27F)
+
+| Offset | Name | Width | Access | Reset Value | Description |
+|--------|------|-------|--------|-------------|-------------|
+| 0x240 | DMA_RX_CTRL | 3 | RW | 0x0 | RX DMA Control |
+| 0x244 | DMA_RX_STATUS | 3 | RO | 0x0 | RX DMA Status |
+| 0x248 | DMA_RX_DESC_LO | 32 | RW | 0x00000000 | RX Descriptor Ring Base Low |
+| 0x24C | DMA_RX_DESC_HI | 32 | RW | 0x00000000 | RX Descriptor Ring Base High |
+| 0x250 | DMA_RX_RING_SIZE | 16 | RW | 0x0100 | RX Ring Size (descriptors) |
+| 0x254 | DMA_RX_HEAD_PTR | 16 | RO | 0x0000 | RX Head Pointer (HW updates) |
+| 0x258 | DMA_RX_TAIL_PTR | 16 | RW | 0x0000 | RX Tail Pointer (SW writes) |
+| 0x25C | DMA_RX_PKT_CNT | 32 | RO | 0x00000000 | RX DMA Packet Counter |
+
+#### DMA Interrupt Registers (0x280 - 0x29F)
+
+| Offset | Name | Width | Access | Reset Value | Description |
+|--------|------|-------|--------|-------------|-------------|
+| 0x280 | DMA_INT_STATUS | 5 | RW1C | 0x0 | DMA Interrupt Status |
+| 0x284 | DMA_INT_MASK | 5 | RW | 0x0 | DMA Interrupt Mask |
+| 0x288 | DMA_INT_COALESCE | 32 | RW | 0x00010001 | Interrupt Coalescing Config |
 
 ---
 
-## 3. Register Descriptions
+## 3. MAC Register Descriptions
 
 ### 3.1 MAC_ADDR_LO - MAC Address Low
 
-**Address:** 0x00  
+**Address:** 0x000  
 **Reset Value:** 0x00000000  
 **Access:** Read/Write
 
@@ -93,7 +135,7 @@ This register holds the lower 32 bits of the 48-bit MAC address. The MAC address
 
 ### 3.2 MAC_ADDR_HI - MAC Address High
 
-**Address:** 0x04  
+**Address:** 0x004  
 **Reset Value:** 0x00000000  
 **Access:** Read/Write
 
@@ -112,7 +154,7 @@ This register holds the upper 16 bits of the 48-bit MAC address. Bits [31:16] ar
 
 ### 3.3 CONTROL - Control Register
 
-**Address:** 0x08  
+**Address:** 0x008  
 **Reset Value:** 0x00000000  
 **Access:** Read/Write
 
@@ -147,7 +189,7 @@ This register controls the TX and RX data paths. Both paths are disabled after r
 
 ### 3.4 STATUS - Status Register
 
-**Address:** 0x0C  
+**Address:** 0x00C  
 **Reset Value:** 0x00000000  
 **Access:** Read-Only
 
@@ -182,7 +224,7 @@ This register provides real-time status of the TX and RX paths.
 
 ### 3.5 INT_STATUS - Interrupt Status Register
 
-**Address:** 0x10  
+**Address:** 0x010  
 **Reset Value:** 0x00000000  
 **Access:** Read/Write-1-to-Clear (RW1C)
 
@@ -215,7 +257,7 @@ This register indicates pending interrupts. Write a 1 to a bit position to clear
 
 ### 3.6 INT_MASK - Interrupt Mask Register
 
-**Address:** 0x14  
+**Address:** 0x014  
 **Reset Value:** 0x00000000  
 **Access:** Read/Write
 
@@ -246,7 +288,7 @@ irq = (INT_STATUS[0] & INT_MASK[0]) |
 
 ### 3.7 TX_FRAME_CNT - TX Frame Counter
 
-**Address:** 0x18  
+**Address:** 0x018  
 **Reset Value:** 0x00000000  
 **Access:** Read-Only
 
@@ -271,7 +313,7 @@ This register counts the number of successfully transmitted frames.
 
 ### 3.8 RX_FRAME_CNT - RX Frame Counter
 
-**Address:** 0x1C  
+**Address:** 0x01C  
 **Reset Value:** 0x00000000  
 **Access:** Read-Only
 
@@ -296,7 +338,7 @@ This register counts the number of successfully received frames.
 
 ### 3.9 RX_ERR_CNT - RX Error Counter
 
-**Address:** 0x20  
+**Address:** 0x020  
 **Reset Value:** 0x00000000  
 **Access:** Read-Only
 
@@ -324,8 +366,8 @@ This register counts the number of received frames with errors.
 
 ### 3.10 VERSION - Version Register
 
-**Address:** 0x24  
-**Reset Value:** 0x00010000  
+**Address:** 0x024  
+**Reset Value:** 0x00020000  
 **Access:** Read-Only
 
 This register contains the IP version number. Value is fixed at synthesis time.
@@ -334,11 +376,11 @@ This register contains the IP version number. Value is fixed at synthesis time.
 |------|-------|--------|-------|-------------|
 | [7:0] | PATCH | RO | 0x00 | Patch version number. |
 | [15:8] | MINOR | RO | 0x00 | Minor version number. |
-| [31:16] | MAJOR | RO | 0x0001 | Major version number. |
+| [31:16] | MAJOR | RO | 0x0002 | Major version number. |
 
 **Version Format:** MAJOR.MINOR.PATCH
 
-**Current Version:** 1.0.0 (0x00010000)
+**Current Version:** 2.0.0 (0x00020000)
 
 **Programming Notes:**
 - Use for driver compatibility checking.
@@ -346,17 +388,208 @@ This register contains the IP version number. Value is fixed at synthesis time.
 
 ---
 
-## 4. Access Types
+## 4. DMA Register Descriptions
+
+The DMA subsystem is optionally included based on the `DMA_ENABLE` parameter. When enabled, it provides scatter-gather DMA capabilities for efficient packet transfer between system memory and the MAC.
+
+### 4.1 TX DMA Registers
+
+#### 4.1.1 DMA_TX_CTRL - TX DMA Control
+
+**Address:** 0x200  
+**Reset Value:** 0x00000000  
+**Access:** Read/Write
+
+| Bits | Field | Access | Reset | Description |
+|------|-------|--------|-------|-------------|
+| [0] | ENABLE | RW | 0 | TX DMA channel enable. |
+| [1] | RESET | RW/SC | 0 | TX channel soft reset (self-clearing). |
+| [2] | IRQ_EN | RW | 0 | TX interrupt enable. |
+| [31:3] | RESERVED | RO | 0 | Reserved. |
+
+#### 4.1.2 DMA_TX_STATUS - TX DMA Status
+
+**Address:** 0x204  
+**Reset Value:** 0x00000000  
+**Access:** Read-Only
+
+| Bits | Field | Access | Reset | Description |
+|------|-------|--------|-------|-------------|
+| [0] | BUSY | RO | 0 | TX DMA is actively processing descriptors. |
+| [1] | HALTED | RO | 0 | TX DMA is halted (disabled or error). |
+| [2] | ERROR | RO | 0 | TX DMA encountered an error. |
+| [31:3] | RESERVED | RO | 0 | Reserved. |
+
+#### 4.1.3 DMA_TX_DESC_LO/HI - TX Descriptor Ring Base
+
+**Address:** 0x208 (Low), 0x20C (High)  
+**Reset Value:** 0x00000000  
+**Access:** Read/Write
+
+64-bit physical address of the TX descriptor ring in system memory.
+
+#### 4.1.4 DMA_TX_RING_SIZE - TX Ring Size
+
+**Address:** 0x210  
+**Reset Value:** 0x00000100 (256 descriptors)  
+**Access:** Read/Write
+
+Number of descriptors in the TX ring. Must be power of 2.
+
+#### 4.1.5 DMA_TX_HEAD_PTR - TX Head Pointer
+
+**Address:** 0x214  
+**Reset Value:** 0x00000000  
+**Access:** Read/Write
+
+Software writes this to indicate new descriptors are available.
+
+#### 4.1.6 DMA_TX_TAIL_PTR - TX Tail Pointer
+
+**Address:** 0x218  
+**Reset Value:** 0x00000000  
+**Access:** Read-Only
+
+Hardware updates this as descriptors are processed.
+
+#### 4.1.7 DMA_TX_PKT_CNT - TX Packet Counter
+
+**Address:** 0x21C  
+**Reset Value:** 0x00000000  
+**Access:** Read-Only
+
+32-bit counter of packets transmitted by DMA.
+
+---
+
+### 4.2 RX DMA Registers
+
+#### 4.2.1 DMA_RX_CTRL - RX DMA Control
+
+**Address:** 0x240  
+**Reset Value:** 0x00000000  
+**Access:** Read/Write
+
+| Bits | Field | Access | Reset | Description |
+|------|-------|--------|-------|-------------|
+| [0] | ENABLE | RW | 0 | RX DMA channel enable. |
+| [1] | RESET | RW/SC | 0 | RX channel soft reset (self-clearing). |
+| [2] | IRQ_EN | RW | 0 | RX interrupt enable. |
+| [31:3] | RESERVED | RO | 0 | Reserved. |
+
+#### 4.2.2 DMA_RX_STATUS - RX DMA Status
+
+**Address:** 0x244  
+**Reset Value:** 0x00000000  
+**Access:** Read-Only
+
+| Bits | Field | Access | Reset | Description |
+|------|-------|--------|-------|-------------|
+| [0] | BUSY | RO | 0 | RX DMA is actively processing. |
+| [1] | HALTED | RO | 0 | RX DMA is halted. |
+| [2] | ERROR | RO | 0 | RX DMA error occurred. |
+| [31:3] | RESERVED | RO | 0 | Reserved. |
+
+#### 4.2.3 DMA_RX_DESC_LO/HI - RX Descriptor Ring Base
+
+**Address:** 0x248 (Low), 0x24C (High)  
+**Reset Value:** 0x00000000  
+**Access:** Read/Write
+
+64-bit physical address of the RX descriptor ring.
+
+#### 4.2.4 DMA_RX_RING_SIZE - RX Ring Size
+
+**Address:** 0x250  
+**Reset Value:** 0x00000100 (256 descriptors)  
+**Access:** Read/Write
+
+Number of descriptors in the RX ring.
+
+#### 4.2.5 DMA_RX_HEAD_PTR - RX Head Pointer
+
+**Address:** 0x254  
+**Reset Value:** 0x00000000  
+**Access:** Read-Only
+
+Hardware updates this as packets are received.
+
+#### 4.2.6 DMA_RX_TAIL_PTR - RX Tail Pointer
+
+**Address:** 0x258  
+**Reset Value:** 0x00000000  
+**Access:** Read/Write
+
+Software writes this to indicate buffer descriptors are available.
+
+#### 4.2.7 DMA_RX_PKT_CNT - RX Packet Counter
+
+**Address:** 0x25C  
+**Reset Value:** 0x00000000  
+**Access:** Read-Only
+
+32-bit counter of packets received by DMA.
+
+---
+
+### 4.3 DMA Interrupt Registers
+
+#### 4.3.1 DMA_INT_STATUS - DMA Interrupt Status
+
+**Address:** 0x280  
+**Reset Value:** 0x00000000  
+**Access:** Read/Write-1-to-Clear
+
+| Bits | Field | Access | Reset | Description |
+|------|-------|--------|-------|-------------|
+| [0] | TX_DONE | RW1C | 0 | TX packet complete. |
+| [1] | TX_ERR | RW1C | 0 | TX error occurred. |
+| [2] | RX_DONE | RW1C | 0 | RX packet complete. |
+| [3] | RX_ERR | RW1C | 0 | RX error occurred. |
+| [4] | DESC_ERR | RW1C | 0 | Descriptor fetch/write error. |
+| [31:5] | RESERVED | RO | 0 | Reserved. |
+
+#### 4.3.2 DMA_INT_MASK - DMA Interrupt Mask
+
+**Address:** 0x284  
+**Reset Value:** 0x00000000  
+**Access:** Read/Write
+
+| Bits | Field | Access | Reset | Description |
+|------|-------|--------|-------|-------------|
+| [4:0] | MASK | RW | 0 | Interrupt mask bits (1=enabled). |
+| [31:5] | RESERVED | RO | 0 | Reserved. |
+
+**DMA Interrupt Output:**
+```
+dma_irq = |(DMA_INT_STATUS & DMA_INT_MASK)
+```
+
+#### 4.3.3 DMA_INT_COALESCE - Interrupt Coalescing
+
+**Address:** 0x288  
+**Reset Value:** 0x00010001  
+**Access:** Read/Write
+
+| Bits | Field | Access | Reset | Description |
+|------|-------|--------|-------|-------------|
+| [15:0] | PKT_CNT | RW | 0x0001 | Packets before interrupt. |
+| [31:16] | TIMEOUT | RW | 0x0001 | Timeout in microseconds. |
+
+---
+
+## 5. Access Types
 
 | Type | Description |
 |------|-------------|
 | RO | Read-Only. Writes are ignored. |
 | RW | Read/Write. Standard read and write access. |
 | RW1C | Read/Write-1-to-Clear. Read returns current value. Write 1 clears bit, write 0 has no effect. |
+| RW/SC | Read/Write, Self-Clearing. Bit clears automatically after action completes. |
 
 ---
 
-## 5. Reset Behavior
+## 6. Reset Behavior
 
 ### System Reset (sys_rst_n)
 
@@ -376,9 +609,9 @@ When `sys_rst_n` is asserted (active low):
 
 ---
 
-## 6. Programming Guidelines
+## 7. Programming Guidelines
 
-### Initial Configuration Sequence
+### Initial Configuration Sequence (MAC Only Mode)
 
 1. Assert system reset.
 2. Release system reset.
@@ -388,18 +621,57 @@ When `sys_rst_n` is asserted (active low):
 6. Configure INT_MASK for desired interrupts.
 7. Enable TX and RX paths via CONTROL register.
 
-### Interrupt Handling
+### Initial Configuration Sequence (DMA Mode)
 
-1. Read INT_STATUS to determine interrupt source.
-2. Service the interrupt (e.g., read received frame).
-3. Write back INT_STATUS value to clear handled interrupts.
-4. Return from interrupt handler.
+1. Assert system reset.
+2. Release system reset.
+3. Read VERSION register to verify IP presence (should be 2.x.x).
+4. Program MAC_ADDR_LO and MAC_ADDR_HI.
+5. Enable MAC TX and RX via CONTROL register.
+6. **TX DMA Setup:**
+   - Allocate descriptor ring in system memory.
+   - Program DMA_TX_DESC_LO/HI with ring base address.
+   - Program DMA_TX_RING_SIZE.
+   - Initialize descriptors with OWN=0 (CPU owns).
+   - Enable TX DMA via DMA_TX_CTRL.
+7. **RX DMA Setup:**
+   - Allocate descriptor ring and buffers in system memory.
+   - Program DMA_RX_DESC_LO/HI with ring base address.
+   - Program DMA_RX_RING_SIZE.
+   - Initialize descriptors with OWN=1 (DMA owns) and buffer addresses.
+   - Write DMA_RX_TAIL_PTR to indicate available descriptors.
+   - Enable RX DMA via DMA_RX_CTRL.
+8. Configure DMA_INT_MASK for desired DMA interrupts.
 
-### Statistics Collection
+### Transmitting a Packet (DMA Mode)
 
-1. Periodically read TX_FRAME_CNT, RX_FRAME_CNT, RX_ERR_CNT.
-2. Store values and compute deltas for rate calculations.
-3. Handle 32-bit counter wrap-around in software.
+1. Allocate buffer and copy packet data.
+2. Set up TX descriptor with buffer address, length, OWN=1.
+3. Advance DMA_TX_HEAD_PTR.
+4. Wait for TX_DONE interrupt or poll DMA_TX_TAIL_PTR.
+5. Check descriptor status for completion.
+
+### Receiving a Packet (DMA Mode)
+
+1. Wait for RX_DONE interrupt.
+2. Read DMA_RX_HEAD_PTR to find completed descriptors.
+3. Process received packets from descriptors.
+4. Re-initialize processed descriptors with OWN=1.
+5. Advance DMA_RX_TAIL_PTR to return descriptors to DMA.
+
+### Interrupt Handling (Dual Interrupt)
+
+The IP provides two interrupt outputs: `mac_irq` and `dma_irq`.
+
+**MAC Interrupt Handler:**
+1. Read INT_STATUS (0x010).
+2. Handle TX_COMPLETE, RX_RECEIVED, error conditions.
+3. Write back INT_STATUS to clear handled interrupts.
+
+**DMA Interrupt Handler:**
+1. Read DMA_INT_STATUS (0x280).
+2. Handle TX_DONE, RX_DONE, error conditions.
+3. Write back DMA_INT_STATUS to clear handled interrupts.
 
 ### Error Conditions
 
@@ -407,7 +679,7 @@ When `sys_rst_n` is asserted (active low):
 |-----------|----------|
 | Access to reserved address | AXI DECERR response |
 | Write to RO register | Write ignored, AXI OKAY response |
-| Read from unimplemented address | Returns 0x00000000, AXI DECERR response |
+| Access to DMA registers when DMA_ENABLE=0 | AXI DECERR response |
 
 ---
 

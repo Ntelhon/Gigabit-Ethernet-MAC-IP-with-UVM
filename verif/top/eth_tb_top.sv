@@ -3,6 +3,8 @@ module eth_tb_top;
 
   import uvm_pkg::*;
   import eth_test_pkg::*;
+
+  `include "eth_tb_params.svh"
   
   // Clock and reset
   logic clk_125m;
@@ -10,12 +12,12 @@ module eth_tb_top;
   logic rst_n;
   
   // Interfaces
-  axi_stream_if#(32,1,1,1) axis_mac_tx_if(clk_axi, rst_n);
-  axi_stream_if#(32,1,1,1) axis_mac_rx_if(clk_axi, rst_n);
-  axi4_if#(32,64,4,1)      axi4_mem_if(clk_axi, rst_n);
-  axi_lite_if#(32,32)      axi_lite_if(clk_axi, rst_n);
-  gmii_if                  gmii_if(clk_125m, clk_125m, rst_n);
-  
+  axi_stream_if#(`AXI_STREAM_PARAMS) axis_mac_tx_if(clk_axi, rst_n);
+  axi_stream_if#(`AXI_STREAM_PARAMS) axis_mac_rx_if(clk_axi, rst_n);
+  axi4_if#(`AXI4_PARAMS) axi4_mem_if(clk_axi, rst_n);
+  axi_lite_if#(`AXI_LITE_PARAMS) axi_lite_if(clk_axi, rst_n);
+  gmii_if gmii_if(clk_125m, clk_125m, rst_n);
+
   // Clock generation
   initial begin
     clk_125m = 0;
@@ -40,7 +42,7 @@ module eth_tb_top;
     .DMA_ENABLE(1),
 
     // AXI4-Lite parameters
-    .AXI_ADDR_WIDTH(32),
+    .AXI_ADDR_WIDTH(AXI_LITE_ADDR_WIDTH),
 
     // MAC parameters
     .MAC_TX_FIFO_DEPTH(16),
@@ -50,8 +52,8 @@ module eth_tb_top;
     .MAC_IFG_BYTES(12),
 
     // DMA parameters
-    .DMA_ADDR_WIDTH(32),
-    .DMA_DATA_WIDTH(64),
+    .DMA_ADDR_WIDTH(AXI4_ADDR_WIDTH),
+    .DMA_DATA_WIDTH(AXI4_DATA_WIDTH),
     .DMA_MAX_BURST_LEN(16),
     .DMA_TX_FIFO_DEPTH(32),
     .DMA_RX_FIFO_DEPTH(32)
@@ -63,19 +65,26 @@ module eth_tb_top;
     .rx_clk(clk_125m),
 
     // AXI-Lite Interface
+    // Write Address Channel
     .s_axi_awaddr(axi_lite_if.awaddr),
     .s_axi_awvalid(axi_lite_if.awvalid),
     .s_axi_awready(axi_lite_if.awready),
+    .s_axi_awprot(axi_lite_if.awprot),
+    // Write Data Channel
     .s_axi_wdata(axi_lite_if.wdata),
     .s_axi_wstrb(axi_lite_if.wstrb),
     .s_axi_wvalid(axi_lite_if.wvalid),
     .s_axi_wready(axi_lite_if.wready),
+    // Write Response Channel
     .s_axi_bresp(axi_lite_if.bresp),
     .s_axi_bvalid(axi_lite_if.bvalid),
     .s_axi_bready(axi_lite_if.bready),
+    // Read Address Channel
     .s_axi_araddr(axi_lite_if.araddr),
     .s_axi_arvalid(axi_lite_if.arvalid),
     .s_axi_arready(axi_lite_if.arready),
+    .s_axi_arprot(axi_lite_if.arprot),
+    // Read Data Channel
     .s_axi_rdata(axi_lite_if.rdata),
     .s_axi_rresp(axi_lite_if.rresp),
     .s_axi_rvalid(axi_lite_if.rvalid),
@@ -89,6 +98,9 @@ module eth_tb_top;
     .gmii_rxd(gmii_if.rxd),
     .gmii_rx_dv(gmii_if.rx_dv),
     .gmii_rx_er(gmii_if.rx_er),
+
+    .gmii_col(1'b0),  // Tie-off
+    .gmii_crs(1'b0),  // Tie-off
 
     // AXI-Stream MAC TX
     .s_axis_tx_tdata(axis_mac_tx_if.tdata),
@@ -147,14 +159,14 @@ module eth_tb_top;
   
   // Interface registration
   initial begin
-    uvm_config_db#(virtual axi_stream_if#(8,1,1,1))::set(null, "*.mac_env_h.tx_stream_agent*", "vif", axis_mac_tx_if);
-    uvm_config_db#(virtual axi_stream_if#(8,1,1,1))::set(null, "*.mac_env_h.rx_stream_agent*", "vif", axis_mac_rx_if);
-    uvm_config_db#(virtual axi_stream_if#(8,1,1,1))::set(null, "*.dma_env_h.axis_tx_agent*", "vif", axis_mac_rx_if);
-    uvm_config_db#(virtual axi_stream_if#(8,1,1,1))::set(null, "*.dma_env_h.axis_rx_agent*", "vif", axis_mac_tx_if);
-    
-    uvm_config_db#(virtual axi4_if#(32,64,4,1))::set(null, "*.dma_env_h.axi4_master_agent*", "vif", axi4_mem_if);
-    uvm_config_db#(virtual axi_lite_if#(32,32))::set(null, "*.axi_lite_agent_h*", "vif", axi_lite_if);
-    
+    uvm_config_db#(virtual axi_stream_if#(`AXI_STREAM_PARAMS))::set(null, "*.mac_env_h.tx_stream_agent*", "vif", axis_mac_tx_if);
+    uvm_config_db#(virtual axi_stream_if#(`AXI_STREAM_PARAMS))::set(null, "*.mac_env_h.rx_stream_agent*", "vif", axis_mac_rx_if);
+    uvm_config_db#(virtual axi_stream_if#(`AXI_STREAM_PARAMS))::set(null, "*.dma_env_h.axis_tx_agent*", "vif", axis_mac_rx_if);
+    uvm_config_db#(virtual axi_stream_if#(`AXI_STREAM_PARAMS))::set(null, "*.dma_env_h.axis_rx_agent*", "vif", axis_mac_tx_if);
+
+    uvm_config_db#(virtual axi4_if#(`AXI4_PARAMS))::set(null, "*.dma_env_h.axi4_master_agent*", "vif", axi4_mem_if);
+    uvm_config_db#(virtual axi_lite_if#(`AXI_LITE_PARAMS))::set(null, "*.axi_lite_agent_h*", "vif", axi_lite_if);
+
     uvm_config_db#(virtual gmii_if)::set(null, "*.mac_env_h.gmii_tx_agent*", "vif", gmii_if);
     uvm_config_db#(virtual gmii_if)::set(null, "*.mac_env_h.gmii_rx_agent*", "vif", gmii_if);
     

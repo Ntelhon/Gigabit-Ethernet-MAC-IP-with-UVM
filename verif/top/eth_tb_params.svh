@@ -1,0 +1,21 @@
+// File: /verif/top/eth_tb_params.svh
+
+// AXI Lite parameters
+parameter AXI_LITE_ADDR_WIDTH = 32;
+parameter AXI_LITE_DATA_WIDTH = 32;
+
+// AXI Stream parameters
+parameter AXI_STREAM_DATA_WIDTH = 8;
+parameter AXI_STREAM_USER_WIDTH = 1;
+parameter AXI_STREAM_DEST_WIDTH = 1;
+parameter AXI_STREAM_ID_WIDTH   = 1;
+
+// AXI4 parameters
+parameter AXI4_ADDR_WIDTH = 32;
+parameter AXI4_DATA_WIDTH = 64;
+parameter AXI4_ID_WIDTH   = 4;
+parameter AXI4_USER_WIDTH = 1;
+
+`define AXI_STREAM_PARAMS AXI_STREAM_DATA_WIDTH,AXI_STREAM_USER_WIDTH,AXI_STREAM_DEST_WIDTH,AXI_STREAM_ID_WIDTH
+`define AXI4_PARAMS AXI4_ADDR_WIDTH,AXI4_DATA_WIDTH,AXI4_ID_WIDTH,AXI4_USER_WIDTH
+`define AXI_LITE_PARAMS AXI_LITE_ADDR_WIDTH,AXI_LITE_DATA_WIDTH

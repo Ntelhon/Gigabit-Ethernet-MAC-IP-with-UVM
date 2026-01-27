@@ -14,9 +14,9 @@ class eth_controller_config extends uvm_object;
   
   // Address map (wrapper-level)
   bit [31:0] mac_reg_base = 32'h0000_0000;
-  bit [31:0] mac_reg_end  = 32'h0000_02FF;
-  bit [31:0] dma_reg_base = 32'h0000_0300;
-  bit [31:0] dma_reg_end  = 32'h0000_0FFF;
+  bit [31:0] mac_reg_end  = 32'h0000_01FF;
+  bit [31:0] dma_reg_base = 32'h0000_0200;
+  bit [31:0] dma_reg_end  = 32'h0000_03FF;
 
   `uvm_object_utils_begin(eth_controller_config)
     `uvm_field_object(mac_cfg, UVM_DEFAULT)

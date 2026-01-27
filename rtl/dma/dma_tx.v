@@ -266,7 +266,7 @@ module dma_tx #(
                     end else begin
                         // Calculate burst length
                         // Limited by: remaining bytes, max burst, FIFO space, 4K boundary
-                        max_bytes = (bytes_remaining < fifo_space) ? bytes_remaining : fifo_space[15:0];
+                        max_bytes = (bytes_remaining < fifo_space) ? bytes_remaining : fifo_space[FIFO_ADDR_W-1:0];
                         max_bytes = (max_bytes < MAX_BURST_LEN * AXI_BYTES) ? max_bytes : (MAX_BURST_LEN * AXI_BYTES);
                         
                         // 4K boundary check

@@ -53,28 +53,27 @@ parameter bit [31:0] DMA_INT_MASK      = 32'h0000_0284;  // DMA Interrupt Mask
 parameter bit [31:0] DMA_INT_COALESCE  = 32'h0000_0288;  // Interrupt Coalescing Config
 
 // Legacy aliases for backward compatibility
-parameter bit [31:0] DMA_CTRL           = DMA_TX_CTRL;      // Legacy - maps to TX CTRL
-parameter bit [31:0] DMA_STATUS         = DMA_TX_STATUS;    // Legacy - maps to TX STATUS
-parameter bit [31:0] DMA_TX_DESC_BASE_L = DMA_TX_DESC_LO;
-parameter bit [31:0] DMA_TX_DESC_BASE_H = DMA_TX_DESC_HI;
-parameter bit [31:0] DMA_TX_DESC_COUNT  = DMA_TX_RING_SIZE;
-parameter bit [31:0] DMA_TX_DESC_HEAD   = DMA_TX_HEAD_PTR;
-parameter bit [31:0] DMA_TX_DESC_TAIL   = DMA_TX_TAIL_PTR;
-parameter bit [31:0] DMA_TX_DESC_SIZE   = DMA_TX_RING_SIZE;
-parameter bit [31:0] DMA_TX_HEAD        = DMA_TX_HEAD_PTR;
-parameter bit [31:0] DMA_TX_TAIL        = DMA_TX_TAIL_PTR;
-parameter bit [31:0] DMA_RX_DESC_BASE_L = DMA_RX_DESC_LO;
-parameter bit [31:0] DMA_RX_DESC_BASE_H = DMA_RX_DESC_HI;
-parameter bit [31:0] DMA_RX_DESC_COUNT  = DMA_RX_RING_SIZE;
-parameter bit [31:0] DMA_RX_DESC_HEAD   = DMA_RX_HEAD_PTR;
-parameter bit [31:0] DMA_RX_DESC_TAIL   = DMA_RX_TAIL_PTR;
-parameter bit [31:0] DMA_RX_DESC_SIZE   = DMA_RX_RING_SIZE;
-parameter bit [31:0] DMA_RX_HEAD        = DMA_RX_HEAD_PTR;
-parameter bit [31:0] DMA_RX_TAIL        = DMA_RX_TAIL_PTR;
-parameter bit [31:0] DMA_INT_COAL_TX    = DMA_INT_COALESCE;  // Legacy
-parameter bit [31:0] DMA_INT_COAL_RX    = DMA_INT_COALESCE;  // Legacy
-parameter bit [31:0] DMA_IRQ_EN         = DMA_INT_MASK;      // Legacy
-parameter bit [31:0] DMA_IRQ_STATUS     = DMA_INT_STATUS;    // Legacy
+parameter bit [31:0] DMA_TX_CTRL_REG        = DMA_TX_CTRL;
+parameter bit [31:0] DMA_TX_STATUS_REG      = DMA_TX_STATUS;
+parameter bit [31:0] DMA_TX_DESC_LO_REG     = DMA_TX_DESC_LO;
+parameter bit [31:0] DMA_TX_DESC_HI_REG     = DMA_TX_DESC_HI;
+parameter bit [31:0] DMA_TX_RING_SIZE_REG   = DMA_TX_RING_SIZE;
+parameter bit [31:0] DMA_TX_HEAD_PTR_REG    = DMA_TX_HEAD_PTR;
+parameter bit [31:0] DMA_TX_TAIL_PTR_REG    = DMA_TX_TAIL_PTR;
+parameter bit [31:0] DMA_TX_PKT_CNT_REG     = DMA_TX_PKT_CNT;
+
+parameter bit [31:0] DMA_RX_CTRL_REG        = DMA_RX_CTRL;
+parameter bit [31:0] DMA_RX_STATUS_REG      = DMA_RX_STATUS;
+parameter bit [31:0] DMA_RX_DESC_LO_REG     = DMA_RX_DESC_LO;
+parameter bit [31:0] DMA_RX_DESC_HI_REG     = DMA_RX_DESC_HI;
+parameter bit [31:0] DMA_RX_RING_SIZE_REG   = DMA_RX_RING_SIZE;
+parameter bit [31:0] DMA_RX_HEAD_PTR_REG    = DMA_RX_HEAD_PTR;
+parameter bit [31:0] DMA_RX_TAIL_PTR_REG    = DMA_RX_TAIL_PTR;
+parameter bit [31:0] DMA_RX_PKT_CNT_REG     = DMA_RX_PKT_CNT;
+
+parameter bit [31:0] DMA_INT_STATUS_REG     = DMA_INT_STATUS;
+parameter bit [31:0] DMA_INT_MASK_REG       = DMA_INT_MASK;
+parameter bit [31:0] DMA_INT_COALESCE_REG   = DMA_INT_COALESCE;
 
 //==============================================================================
 // Descriptor Bit Fields (Status/Control Word)

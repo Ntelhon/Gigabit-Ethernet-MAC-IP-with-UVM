@@ -9,19 +9,19 @@ class eth_scoreboard extends uvm_scoreboard;
   `uvm_analysis_imp_decl(_axis_mac_rx)
 
   // Analysis ports for end-to-end checking
-  uvm_analysis_imp_gmii#(gmii_item, eth_scoreboard)                     gmii_imp;
-  uvm_analysis_imp_axi4#(axi4_item#(32,64,4,1), eth_scoreboard)         axi4_imp;
-  uvm_analysis_imp_axis_mac_tx#(axi_stream_item#(32,1,1,1), eth_scoreboard) axis_mac_tx_imp;
-  uvm_analysis_imp_axis_mac_rx#(axi_stream_item#(32,1,1,1), eth_scoreboard) axis_mac_rx_imp;
+  uvm_analysis_imp_gmii#(gmii_item, eth_scoreboard)                                   gmii_imp;
+  uvm_analysis_imp_axi4#(axi4_item#(`AXI4_PARAMS), eth_scoreboard)                    axi4_imp;
+  uvm_analysis_imp_axis_mac_tx#(axi_stream_item#(`AXI_STREAM_PARAMS), eth_scoreboard) axis_mac_tx_imp;
+  uvm_analysis_imp_axis_mac_rx#(axi_stream_item#(`AXI_STREAM_PARAMS), eth_scoreboard) axis_mac_rx_imp;
 
   // Reference to memory model
   memory_model mem;
   
   // Packet tracking
   typedef struct {
-    byte unsigned payload[];
-    bit [31:0]    buffer_addr;
-    time          timestamp;
+    byte unsigned                payload[];
+    bit [AXI4_ADDR_WIDTH-1:0]    buffer_addr;
+    time                         timestamp;
   } packet_tracker_t;
   
   packet_tracker_t tx_packets[$];  // Packets sent to memory by DMA
@@ -56,14 +56,14 @@ class eth_scoreboard extends uvm_scoreboard;
   endfunction
 
   // AXI4 transactions (Memory side)
-  function void write_axi4(axi4_item#(32,64,4,1) item);
+  function void write_axi4(axi4_item#(`AXI4_PARAMS) item);
     if(item.trans_type == AXI4_WRITE) begin
       packet_tracker_t pkt;
       byte unsigned byte_data[];
       int byte_idx = 0;
       
       // Extract bytes from AXI4 write
-      byte_data = new[item.data.size() * 8];
+      byte_data = new[item.data.size() * AXI4_DATA_WIDTH/8];
       foreach(item.data[i]) begin
         for(int j = 0; j < 8; j++) begin
           if(item.strb[i][j])
@@ -82,13 +82,13 @@ class eth_scoreboard extends uvm_scoreboard;
   endfunction
 
   // AXI-Stream MAC TX (MAC → DMA)
-  function void write_axis_mac_tx(axi_stream_item#(32,1,1,1) item);
+  function void write_axis_mac_tx(axi_stream_item#(`AXI_STREAM_PARAMS) item);
     // Could track for additional checks
     `uvm_info("ETH_SB", "AXI-Stream MAC TX observed", UVM_HIGH)
   endfunction
 
   // AXI-Stream MAC RX (DMA → MAC)
-  function void write_axis_mac_rx(axi_stream_item#(32,1,1,1) item);
+  function void write_axis_mac_rx(axi_stream_item#(`AXI_STREAM_PARAMS) item);
     // Could track for additional checks
     `uvm_info("ETH_SB", "AXI-Stream MAC RX observed", UVM_HIGH)
   endfunction

@@ -6,7 +6,7 @@ class eth_virtual_sequencer extends uvm_sequencer;
   // ==========================================
   // SYSTEM-LEVEL SEQUENCER (Wrapper boundary)
   // ==========================================
-  axi_lite_sequencer#(32,32) axi_lite_sqr;
+  axi_lite_sequencer#(`AXI_LITE_PARAMS) axi_lite_sqr;
   
   // ==========================================
   // MAC-side sequencers

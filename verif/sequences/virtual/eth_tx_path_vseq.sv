@@ -38,7 +38,7 @@ class eth_tx_path_vseq extends eth_base_vseq;
     end
     
     // Trigger DMA (write to tail pointer register)
-    write_dma_reg(32'h14, num_packets);  // Example: descriptor count
+    write_reg(DMA_TX_HEAD_PTR_REG, num_packets);  // Example: descriptor count
     
     // Wait for packets to egress
     #20us;

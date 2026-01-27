@@ -11,7 +11,7 @@ class eth_controller_env extends uvm_env;
   dma_env dma_env_h;
   
   // System-level agent (AXI-Lite for register access)
-  axi_lite_agent#(32,32) axi_lite_agent_h;
+  axi_lite_agent#(`AXI_LITE_PARAMS) axi_lite_agent_h;
   
   // Virtual sequencer
   eth_virtual_sequencer virtual_sqr;
@@ -35,7 +35,7 @@ class eth_controller_env extends uvm_env;
     
     // Create AXI-Lite agent (system-level register interface)
     uvm_config_db#(axi_lite_config)::set(this, "axi_lite_agent_h", "cfg", cfg.axi_lite_cfg);
-    axi_lite_agent_h = axi_lite_agent#(32,32)::type_id::create("axi_lite_agent_h", this);
+    axi_lite_agent_h = axi_lite_agent#(`AXI_LITE_PARAMS)::type_id::create("axi_lite_agent_h", this);
     
     // Create sub-environments
     if(cfg.enable_mac) begin

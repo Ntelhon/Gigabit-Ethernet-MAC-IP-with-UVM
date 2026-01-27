@@ -8,18 +8,18 @@ class mac_scoreboard extends uvm_scoreboard;
   `uvm_analysis_imp_decl(_axis_rx)
 
   // Analysis ports for MAC Scoreboard
-  uvm_analysis_imp_gmii_rx#(gmii_item, mac_scoreboard)                     gmii_rx_imp;
-  uvm_analysis_imp_axis_tx#(axi_stream_item#(32,1,1,1), mac_scoreboard)    axis_tx_imp;
+  uvm_analysis_imp_gmii_rx#(gmii_item, mac_scoreboard)                               gmii_rx_imp;
+  uvm_analysis_imp_axis_tx#(axi_stream_item#(`AXI_STREAM_PARAMS), mac_scoreboard)    axis_tx_imp;
 
-  uvm_analysis_imp_gmii_tx#(gmii_item, mac_scoreboard)                     gmii_tx_imp;
-  uvm_analysis_imp_axis_rx#(axi_stream_item#(32,1,1,1), mac_scoreboard)    axis_rx_imp;
+  uvm_analysis_imp_gmii_tx#(gmii_item, mac_scoreboard)                               gmii_tx_imp;
+  uvm_analysis_imp_axis_rx#(axi_stream_item#(`AXI_STREAM_PARAMS), mac_scoreboard)    axis_rx_imp;
 
   // Queues for checking
   gmii_item               rx_gmii_queue[$];
-  axi_stream_item#(32,1,1,1) rx_axis_queue[$];
+  axi_stream_item#(`AXI_STREAM_PARAMS) rx_axis_queue[$];
   
   gmii_item               tx_gmii_queue[$];
-  axi_stream_item#(32,1,1,1) tx_axis_queue[$];
+  axi_stream_item#(`AXI_STREAM_PARAMS) tx_axis_queue[$];
 
   // Statistics
   int rx_packets_matched = 0;
@@ -41,14 +41,14 @@ class mac_scoreboard extends uvm_scoreboard;
     check_rx_path();
   endfunction
 
-  function void write_axis_tx(axi_stream_item#(32,1,1,1) item);
+  function void write_axis_tx(axi_stream_item#(`AXI_STREAM_PARAMS) item);
     rx_axis_queue.push_back(item);
     check_rx_path();
   endfunction
 
   function void check_rx_path();
     gmii_item gmii_pkt;
-    axi_stream_item#(32,1,1,1) axis_pkt;
+    axi_stream_item#(`AXI_STREAM_PARAMS) axis_pkt;
     byte unsigned gmii_payload[];
     byte unsigned axis_payload[];
     
@@ -72,7 +72,7 @@ class mac_scoreboard extends uvm_scoreboard;
   endfunction
 
   // TX path: AXI-Stream → MAC → GMII
-  function void write_axis_rx(axi_stream_item#(32,1,1,1) item);
+  function void write_axis_rx(axi_stream_item#(`AXI_STREAM_PARAMS) item);
     tx_axis_queue.push_back(item);
     check_tx_path();
   endfunction
@@ -84,7 +84,7 @@ class mac_scoreboard extends uvm_scoreboard;
 
   function void check_tx_path();
     gmii_item gmii_pkt;
-    axi_stream_item#(32,1,1,1) axis_pkt;
+    axi_stream_item#(`AXI_STREAM_PARAMS) axis_pkt;
     byte unsigned gmii_payload[];
     byte unsigned axis_payload[];
     

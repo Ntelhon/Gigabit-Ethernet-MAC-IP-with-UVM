@@ -21,10 +21,10 @@
 
 module dma_rx #(
     parameter ADDR_WIDTH    = 64,       // AXI address width
-    parameter AXI_DATA_W    = 64,       // AXI-MM data width
-    parameter AXIS_DATA_W   = 8,        // AXI-Stream data width (MAC side)
-    parameter MAX_BURST_LEN = 16,       // Max AXI burst length
-    parameter FIFO_DEPTH    = 4096      // Internal FIFO depth (bytes)
+    parameter AXI_DATA_W    = 64,       // AXI-MM data width (must be power of 2, >= 8)
+    parameter AXIS_DATA_W   = 8,        // AXI-Stream data width (MAC side, must be 8)
+    parameter MAX_BURST_LEN = 16,       // Max AXI burst length (1-256)
+    parameter FIFO_DEPTH    = 4096     // Internal FIFO depth in bytes (must be power of 2)
 )(
     // Clock and Reset
     input  wire                     clk,
@@ -98,8 +98,17 @@ module dma_rx #(
     //--------------------------------------------------------------------------
     // Local Parameters
     //--------------------------------------------------------------------------
-    localparam AXI_BYTES = AXI_DATA_W / 8;
-    localparam FIFO_ADDR_W = $clog2(FIFO_DEPTH);
+    localparam AXI_BYTES      = AXI_DATA_W / 8;
+    localparam AXIS_BYTES     = AXIS_DATA_W / 8;  // Should be 1
+    localparam FIFO_ADDR_W    = $clog2(FIFO_DEPTH);
+    localparam FIFO_COUNT_W   = FIFO_ADDR_W + 1;  // One extra bit for full detection
+    localparam PKT_LEN_W      = 16;  // Fixed at 16 bits for packet length (max 64KB)
+    
+    // FIFO almost full threshold (leave headroom for in-flight data)
+    localparam [FIFO_COUNT_W-1:0] FIFO_AFULL_THRESH = FIFO_DEPTH - (AXI_BYTES * 4);
+    
+    // AXI 4KB boundary in bytes
+    localparam AXI_4K_BOUNDARY = 12;
     
     // AXI configuration
     assign m_axi_awsize  = $clog2(AXI_BYTES);
@@ -111,18 +120,17 @@ module dma_rx #(
     //--------------------------------------------------------------------------
     localparam [3:0]
         ST_IDLE         = 4'd0,
-        ST_WAIT_SOF     = 4'd1,
+        ST_WAIT_PKT     = 4'd1,
         ST_RECEIVE      = 4'd2,
         ST_CALC_BURST   = 4'd3,
         ST_ISSUE_AW     = 4'd4,
         ST_WRITE_DATA   = 4'd5,
         ST_WAIT_B       = 4'd6,
         ST_WRITEBACK    = 4'd7,
-        ST_WAIT_WB      = 4'd8,
-        ST_DROP_PKT     = 4'd9,
-        ST_ERROR        = 4'd10;
+        ST_DROP_PKT     = 4'd8,
+        ST_ERROR        = 4'd9;
     
-    reg [3:0] state;
+    reg [3:0] state, next_state;
     
     //--------------------------------------------------------------------------
     // Internal Registers
@@ -132,124 +140,182 @@ module dma_rx #(
     reg [15:0]              cur_max_len;
     reg [15:0]              cur_index;
     reg [31:0]              cur_ctrl;
-    reg [15:0]              bytes_written;
-    reg [15:0]              pkt_len;
-    reg                     pkt_error;
+    reg [15:0]              bytes_written;      // Bytes written to memory in current packet
+    reg [15:0]              pkt_len;            // Current packet length being received
+    reg                     pkt_error;          // Packet had error flag
+    reg                     pkt_complete;       // Complete packet in FIFO
     
-    // FIFO with metadata
-    reg [7:0] fifo_mem [0:FIFO_DEPTH-1];
-    reg [FIFO_ADDR_W-1:0] fifo_wr_ptr;
-    reg [FIFO_ADDR_W-1:0] fifo_rd_ptr;
-    reg [FIFO_ADDR_W:0]   fifo_count;
+    // FIFO - byte-addressable memory
+    reg [7:0]               fifo_mem [0:FIFO_DEPTH-1];
+    reg [FIFO_ADDR_W-1:0]   fifo_wr_ptr;
+    reg [FIFO_ADDR_W-1:0]   fifo_rd_ptr;
+    reg [FIFO_COUNT_W-1:0]  fifo_count;         // Number of valid bytes in FIFO
     
-    // Packet boundary tracking
-    reg [FIFO_ADDR_W:0]   pkt_end_ptr;    // Where current packet ends
-    reg                   pkt_complete;    // Full packet in FIFO
-    reg                   eof_received;
+    // FIFO control signals
+    wire                    fifo_wr_en;
+    wire                    fifo_rd_en;
+    wire [7:0]              fifo_wr_data;
+    reg  [7:0]              fifo_rd_bytes;      // How many bytes to read this cycle (0 to AXI_BYTES)
     
-    wire fifo_full  = (fifo_count >= FIFO_DEPTH - 16);
-    wire fifo_empty = (fifo_count == 0);
+    wire                    fifo_empty;
+    wire                    fifo_afull;
     
-    // Burst calculation
-    reg [7:0] burst_len;
-    reg [15:0] burst_bytes;
-    reg [15:0] bytes_to_write;
+    // Burst tracking
+    reg [7:0]               burst_len;          // AXI burst length (beats - 1)
+    reg [7:0]               burst_beat_cnt;     // Current beat in burst
+    reg [15:0]              burst_bytes_total;  // Total bytes in this burst
+    reg [15:0]              bytes_remaining;    // Bytes left to write for this packet
     
-    // Write data assembly
-    reg [2:0] wdata_byte_idx;
-    reg [AXI_DATA_W-1:0] wdata_buf;
-    reg [AXI_BYTES-1:0] wstrb_buf;
+    // Burst calculation temporaries
+    reg [15:0]              max_burst_bytes;
+    reg [15:0]              boundary_limit;
+    reg [15:0]              buffer_limit;
+    reg [15:0]              fifo_limit;
+    reg [15:0]              min_bytes;
+    reg [7:0]               calculated_len;
     
-    // Temporary calculation variables
+    // Write data assembly temporaries
+    reg [AXI_DATA_W-1:0]    assembled_data;
+    reg [AXI_BYTES-1:0]     assembled_strb;
+    reg [FIFO_ADDR_W-1:0]   rd_idx;
+    reg [7:0]               valid_bytes;
+    
+    // Loop counter
     integer i;
-    reg [15:0] max_bytes;
-    reg [15:0] boundary_bytes;
-    reg [15:0] remaining;
-    reg [7:0]  calc_len;
-    reg [AXI_DATA_W-1:0] new_wdata;
-    reg [AXI_BYTES-1:0] new_wstrb;
-    reg [15:0] bytes_this_beat;
-    reg is_last_beat;
-
+    
     //--------------------------------------------------------------------------
-    // Status
+    // FIFO Status Flags
     //--------------------------------------------------------------------------
-    assign busy   = (state != ST_IDLE) && (state != ST_WAIT_SOF);
+    assign fifo_empty = (fifo_count == {FIFO_COUNT_W{1'b0}});
+    assign fifo_afull = (fifo_count >= FIFO_AFULL_THRESH);
+    
+    //--------------------------------------------------------------------------
+    // Status Outputs
+    //--------------------------------------------------------------------------
+    assign busy   = (state != ST_IDLE);
     assign halted = !enable || (state == ST_ERROR);
     
-    // Accept data when enabled and FIFO has space (unless dropping)
-    assign s_axis_tready = enable && !fifo_full && (state != ST_DROP_PKT);
+    // Accept stream data when enabled, FIFO has space, and not in drop state
+    assign s_axis_tready = enable && !fifo_afull && 
+                           (state != ST_DROP_PKT) && (state != ST_ERROR);
 
     //--------------------------------------------------------------------------
-    // FIFO Write Logic (receive from MAC)
+    // FIFO Write Interface (from AXI-Stream)
+    //--------------------------------------------------------------------------
+    assign fifo_wr_en   = s_axis_tvalid && s_axis_tready;
+    assign fifo_wr_data = s_axis_tdata;
+    
+    //--------------------------------------------------------------------------
+    // FIFO Read Interface (to AXI-MM)
+    //--------------------------------------------------------------------------
+    assign fifo_rd_en = m_axi_wvalid && m_axi_wready;
+    
+    // Calculate how many bytes we'll read from FIFO this cycle
+    always @(*) begin
+        if (fifo_rd_en) begin
+            if (fifo_count >= AXI_BYTES)
+                fifo_rd_bytes = AXI_BYTES;
+            else
+                fifo_rd_bytes = {{(8-FIFO_COUNT_W){1'b0}}, fifo_count};
+            
+            // Also limit by remaining bytes to write
+            if (bytes_remaining < AXI_BYTES)
+                fifo_rd_bytes = bytes_remaining[7:0];
+        end else begin
+            fifo_rd_bytes = 8'd0;
+        end
+    end
+
+    //--------------------------------------------------------------------------
+    // FIFO Memory and Pointer Management
     //--------------------------------------------------------------------------
     always @(posedge clk or negedge rst_n) begin
         if (!rst_n) begin
             fifo_wr_ptr  <= {FIFO_ADDR_W{1'b0}};
-            pkt_len      <= 16'd0;
-            pkt_error    <= 1'b0;
-            eof_received <= 1'b0;
-            pkt_complete <= 1'b0;
-            pkt_end_ptr  <= {(FIFO_ADDR_W+1){1'b0}};
+            fifo_rd_ptr  <= {FIFO_ADDR_W{1'b0}};
+            fifo_count   <= {FIFO_COUNT_W{1'b0}};
             
         end else if (soft_reset) begin
             fifo_wr_ptr  <= {FIFO_ADDR_W{1'b0}};
+            fifo_rd_ptr  <= {FIFO_ADDR_W{1'b0}};
+            fifo_count   <= {FIFO_COUNT_W{1'b0}};
+            
+        end else begin
+            // Write to FIFO
+            if (fifo_wr_en) begin
+                fifo_mem[fifo_wr_ptr] <= fifo_wr_data;
+                fifo_wr_ptr <= fifo_wr_ptr + 1'b1;
+            end
+            
+            // Read from FIFO (pointer update)
+            if (fifo_rd_en) begin
+                fifo_rd_ptr <= fifo_rd_ptr + fifo_rd_bytes[FIFO_ADDR_W-1:0];
+            end
+            
+            // Update count (write and read can happen simultaneously)
+            case ({fifo_wr_en, fifo_rd_en})
+                2'b10: fifo_count <= fifo_count + 1'b1;
+                2'b01: begin
+                    if (fifo_count >= fifo_rd_bytes)
+                        fifo_count <= fifo_count - fifo_rd_bytes;
+                    else
+                        fifo_count <= {FIFO_COUNT_W{1'b0}};
+                end
+                2'b11: begin
+                    if (fifo_count >= fifo_rd_bytes)
+                        fifo_count <= fifo_count + 1'b1 - fifo_rd_bytes;
+                    else
+                        fifo_count <= 1'b1;  // Just the written byte
+                end
+                default: fifo_count <= fifo_count;
+            endcase
+        end
+    end
+
+    //--------------------------------------------------------------------------
+    // Packet Reception Tracking
+    //--------------------------------------------------------------------------
+    always @(posedge clk or negedge rst_n) begin
+        if (!rst_n) begin
             pkt_len      <= 16'd0;
             pkt_error    <= 1'b0;
-            eof_received <= 1'b0;
+            pkt_complete <= 1'b0;
+            
+        end else if (soft_reset) begin
+            pkt_len      <= 16'd0;
+            pkt_error    <= 1'b0;
             pkt_complete <= 1'b0;
             
         end else begin
-            // Clear complete flag when packet processing starts
-            if (state == ST_CALC_BURST && pkt_complete) begin
-                // Keep complete until packet is fully written
-            end
-            
-            if (s_axis_tvalid && s_axis_tready) begin
-                // Store byte in FIFO
-                fifo_mem[fifo_wr_ptr] <= s_axis_tdata;
-                fifo_wr_ptr <= fifo_wr_ptr + 1;
-                pkt_len <= pkt_len + 1;
-                
+            // Accumulate packet length as bytes arrive
+            if (fifo_wr_en) begin
                 if (s_axis_tlast) begin
                     // End of packet
-                    eof_received <= 1'b1;
                     pkt_complete <= 1'b1;
-                    pkt_end_ptr  <= fifo_wr_ptr + 1;
+                    pkt_len      <= pkt_len + 16'd1;
                     
-                    // tuser on tlast indicates error (e.g., CRC error)
+                    // Check for error indication
                     if (s_axis_tuser) begin
                         pkt_error <= 1'b1;
                     end
+                end else begin
+                    pkt_len <= pkt_len + 16'd1;
                 end
             end
             
-            // Reset packet state after writeback
-            if (state == ST_WAIT_WB && wb_ready) begin
+            // Clear packet state after writeback completes
+            if (state == ST_WRITEBACK && wb_valid && wb_ready) begin
                 pkt_len      <= 16'd0;
                 pkt_error    <= 1'b0;
-                eof_received <= 1'b0;
                 pkt_complete <= 1'b0;
             end
-        end
-    end
-    
-    // FIFO count management
-    always @(posedge clk or negedge rst_n) begin
-        if (!rst_n) begin
-            fifo_count <= {(FIFO_ADDR_W+1){1'b0}};
-        end else if (soft_reset) begin
-            fifo_count <= {(FIFO_ADDR_W+1){1'b0}};
-        end else begin
-            case ({s_axis_tvalid && s_axis_tready, 
-                   m_axi_wvalid && m_axi_wready})
-                2'b10: fifo_count <= fifo_count + 1;
-                2'b01: fifo_count <= (fifo_count >= AXI_BYTES) ? 
-                                     fifo_count - AXI_BYTES : 0;
-                2'b11: fifo_count <= fifo_count + 1 - 
-                                     ((fifo_count >= AXI_BYTES) ? AXI_BYTES : fifo_count);
-                default: ; // No change
-            endcase
+            
+            // Clear packet state when dropping
+            if (state == ST_DROP_PKT && s_axis_tlast && s_axis_tvalid) begin
+                pkt_len      <= 16'd0;
+                pkt_error    <= 1'b0;
+                pkt_complete <= 1'b0;
+            end
         end
     end
 
@@ -267,252 +333,283 @@ module dma_rx #(
             wb_length  <= 16'd0;
             wb_status  <= 32'd0;
             
-            // AXI write
+            // AXI write interface
             m_axi_awvalid <= 1'b0;
             m_axi_awaddr  <= {ADDR_WIDTH{1'b0}};
             m_axi_awlen   <= 8'd0;
             m_axi_wvalid  <= 1'b0;
             m_axi_wdata   <= {AXI_DATA_W{1'b0}};
-            m_axi_wstrb   <= {AXI_BYTES{1'b1}};
+            m_axi_wstrb   <= {AXI_BYTES{1'b0}};
             m_axi_wlast   <= 1'b0;
             m_axi_bready  <= 1'b0;
             
-            // Internal
-            cur_addr      <= {ADDR_WIDTH{1'b0}};
-            cur_max_len   <= 16'd0;
-            cur_index     <= 16'd0;
-            cur_ctrl      <= 32'd0;
-            bytes_written <= 16'd0;
-            bytes_to_write <= 16'd0;
-            burst_len     <= 8'd0;
-            burst_bytes   <= 16'd0;
-            fifo_rd_ptr   <= {FIFO_ADDR_W{1'b0}};
-            wdata_byte_idx <= 3'd0;
-            wdata_buf     <= {AXI_DATA_W{1'b0}};
-            wstrb_buf     <= {AXI_BYTES{1'b0}};
+            // Internal state
+            cur_addr       <= {ADDR_WIDTH{1'b0}};
+            cur_max_len    <= 16'd0;
+            cur_index      <= 16'd0;
+            cur_ctrl       <= 32'd0;
+            bytes_written  <= 16'd0;
+            bytes_remaining <= 16'd0;
+            burst_len      <= 8'd0;
+            burst_beat_cnt <= 8'd0;
+            burst_bytes_total <= 16'd0;
+            
+            // Burst calc temps
+            max_burst_bytes <= 16'd0;
+            boundary_limit  <= 16'd0;
+            buffer_limit    <= 16'd0;
+            fifo_limit      <= 16'd0;
+            min_bytes       <= 16'd0;
+            calculated_len  <= 8'd0;
+            
+            // Write assembly temps
+            assembled_data  <= {AXI_DATA_W{1'b0}};
+            assembled_strb  <= {AXI_BYTES{1'b0}};
+            rd_idx          <= {FIFO_ADDR_W{1'b0}};
+            valid_bytes     <= 8'd0;
             
             // Status
-            error <= 1'b0;
+            error       <= 1'b0;
             rx_pkt_cnt  <= 32'd0;
             rx_byte_cnt <= 32'd0;
             rx_drop_cnt <= 32'd0;
             
         end else if (soft_reset) begin
-            state <= ST_IDLE;
+            state         <= ST_IDLE;
             desc_ready    <= 1'b0;
             wb_valid      <= 1'b0;
             m_axi_awvalid <= 1'b0;
             m_axi_wvalid  <= 1'b0;
+            m_axi_wlast   <= 1'b0;
             m_axi_bready  <= 1'b0;
-            fifo_rd_ptr   <= {FIFO_ADDR_W{1'b0}};
-            error <= 1'b0;
+            error         <= 1'b0;
             
         end else begin
-            // Default de-assertions
-            if (m_axi_awready) m_axi_awvalid <= 1'b0;
-            if (m_axi_wready && m_axi_wlast) begin
-                m_axi_wvalid <= 1'b0;
-                m_axi_wlast  <= 1'b0;
-            end
-            if (wb_ready) wb_valid <= 1'b0;
+            // Default: clear single-cycle signals
+            if (desc_ready && desc_valid)
+                desc_ready <= 1'b0;
+            
+            if (m_axi_awvalid && m_axi_awready)
+                m_axi_awvalid <= 1'b0;
+            
+            if (wb_valid && wb_ready)
+                wb_valid <= 1'b0;
             
             case (state)
                 //--------------------------------------------------------------
-                // Idle - Wait for descriptor and packet
+                // IDLE: Wait for descriptor
                 //--------------------------------------------------------------
                 ST_IDLE: begin
-                    desc_ready <= enable;
-                    bytes_written <= 16'd0;
-                    
-                    if (enable && desc_valid && desc_ready) begin
-                        // Latch descriptor
-                        cur_addr    <= desc_buf_addr;
-                        cur_max_len <= desc_buf_len;
-                        cur_index   <= desc_index;
-                        cur_ctrl    <= desc_ctrl;
+                    if (enable) begin
+                        desc_ready <= 1'b1;
                         
-                        desc_ready <= 1'b0;
-                        state <= ST_WAIT_SOF;
+                        if (desc_valid && desc_ready) begin
+                            // Latch descriptor
+                            cur_addr    <= desc_buf_addr;
+                            cur_max_len <= desc_buf_len;
+                            cur_index   <= desc_index;
+                            cur_ctrl    <= desc_ctrl;
+                            bytes_written <= 16'd0;
+                            
+                            desc_ready <= 1'b0;
+                            state <= ST_WAIT_PKT;
+                        end
                     end
                 end
                 
                 //--------------------------------------------------------------
-                // Wait for start of packet
+                // WAIT_PKT: Wait for packet data
                 //--------------------------------------------------------------
-                ST_WAIT_SOF: begin
-                    if (pkt_complete || eof_received) begin
-                        // Packet available, start writing
-                        bytes_to_write <= pkt_len;
+                ST_WAIT_PKT: begin
+                    if (pkt_complete) begin
+                        // Full packet received, start DMA
+                        bytes_remaining <= pkt_len;
                         state <= ST_CALC_BURST;
-                    end else if (fifo_count >= (FIFO_DEPTH / 2)) begin
-                        // Half full, start streaming to memory
-                        bytes_to_write <= fifo_count[15:0];
+                        
+                    end else if (!fifo_empty && (fifo_count >= AXI_BYTES)) begin
+                        // Streaming mode: start writing before packet completes
+                        bytes_remaining <= {{(16-FIFO_COUNT_W){1'b0}}, fifo_count};
                         state <= ST_CALC_BURST;
                     end
                 end
                 
                 //--------------------------------------------------------------
-                // Calculate burst parameters
+                // CALC_BURST: Calculate burst parameters
                 //--------------------------------------------------------------
                 ST_CALC_BURST: begin
-                    if (bytes_to_write == 0 || bytes_written >= cur_max_len) begin
-                        // Done writing, do writeback
+                    if ((bytes_written >= cur_max_len) || (bytes_written >= pkt_len)) begin
+                        // Done writing this packet
                         state <= ST_WRITEBACK;
-                    end else if (fifo_count == 0 && !eof_received) begin
+                        
+                    end else if (fifo_empty) begin
                         // Wait for more data
-                        state <= ST_WAIT_SOF;
+                        state <= ST_WAIT_PKT;
+                        
                     end else begin
-                        // Calculate burst
-                        remaining = bytes_to_write - bytes_written;
-                        max_bytes = (remaining < fifo_count) ? remaining : fifo_count[15:0];
-                        max_bytes = (max_bytes < MAX_BURST_LEN * AXI_BYTES) ? 
-                                    max_bytes : (MAX_BURST_LEN * AXI_BYTES);
+                        // Calculate maximum burst size
+                        max_burst_bytes = MAX_BURST_LEN * AXI_BYTES;
                         
-                        // Check buffer limit
-                        if (bytes_written + max_bytes > cur_max_len)
-                            max_bytes = cur_max_len - bytes_written;
+                        // Limit 1: Remaining packet bytes
+                        if (pkt_len - bytes_written < max_burst_bytes)
+                            min_bytes = pkt_len - bytes_written;
+                        else
+                            min_bytes = max_burst_bytes;
                         
-                        // 4K boundary
-                        boundary_bytes = 16'h1000 - cur_addr[11:0];
-                        if (max_bytes > boundary_bytes)
-                            max_bytes = boundary_bytes;
+                        // Limit 2: Descriptor buffer size
+                        buffer_limit = cur_max_len - bytes_written;
+                        if (min_bytes > buffer_limit)
+                            min_bytes = buffer_limit;
                         
-                        calc_len = (max_bytes + AXI_BYTES - 1) / AXI_BYTES - 1;
+                        // Limit 3: FIFO available data
+                        fifo_limit = {{(16-FIFO_COUNT_W){1'b0}}, fifo_count};
+                        if (min_bytes > fifo_limit)
+                            min_bytes = fifo_limit;
                         
-                        burst_len   <= calc_len;
-                        burst_bytes <= (calc_len + 1) * AXI_BYTES;
+                        // Limit 4: AXI 4KB boundary
+                        boundary_limit = (16'h1000 - cur_addr[AXI_4K_BOUNDARY-1:0]);
+                        if (min_bytes > boundary_limit)
+                            min_bytes = boundary_limit;
+                        
+                        // Ensure at least 1 byte
+                        if (min_bytes == 16'd0)
+                            min_bytes = 16'd1;
+                        
+                        // Convert bytes to AXI beats (round up)
+                        calculated_len = ((min_bytes + AXI_BYTES - 1) / AXI_BYTES) - 1;
+                        
+                        burst_len <= calculated_len;
+                        burst_bytes_total <= (calculated_len + 1) * AXI_BYTES;
+                        burst_beat_cnt <= 8'd0;
                         
                         state <= ST_ISSUE_AW;
                     end
                 end
                 
                 //--------------------------------------------------------------
-                // Issue AXI write address
+                // ISSUE_AW: Issue write address
                 //--------------------------------------------------------------
                 ST_ISSUE_AW: begin
-                    m_axi_awvalid <= 1'b1;
-                    m_axi_awaddr  <= cur_addr;
-                    m_axi_awlen   <= burst_len;
-                    wdata_byte_idx <= 3'd0;
-                    
-                    state <= ST_WRITE_DATA;
+                    if (!m_axi_awvalid || m_axi_awready) begin
+                        m_axi_awvalid <= 1'b1;
+                        m_axi_awaddr  <= cur_addr;
+                        m_axi_awlen   <= burst_len;
+                        
+                        state <= ST_WRITE_DATA;
+                    end
                 end
                 
                 //--------------------------------------------------------------
-                // Write data to memory
+                // WRITE_DATA: Stream data to AXI
                 //--------------------------------------------------------------
                 ST_WRITE_DATA: begin
                     if (!m_axi_wvalid || m_axi_wready) begin
-                        // Assemble write data from FIFO
-                        new_wdata = {AXI_DATA_W{1'b0}};
-                        new_wstrb = {AXI_BYTES{1'b0}};
-                        bytes_this_beat = 0;
+                        // Assemble data from FIFO
+                        assembled_data = {AXI_DATA_W{1'b0}};
+                        assembled_strb = {AXI_BYTES{1'b0}};
+                        valid_bytes = 8'd0;
                         
                         for (i = 0; i < AXI_BYTES; i = i + 1) begin
-                            if (fifo_count > i && bytes_written + i < bytes_to_write &&
-                                bytes_written + i < cur_max_len) begin
-                                new_wdata[i*8 +: 8] = fifo_mem[(fifo_rd_ptr + i) & (FIFO_DEPTH-1)];
-                                new_wstrb[i] = 1'b1;
-                                bytes_this_beat = bytes_this_beat + 1;
+                            rd_idx = fifo_rd_ptr + i[FIFO_ADDR_W-1:0];
+                            
+                            if ((i < fifo_count) && 
+                                (bytes_written + i < pkt_len) &&
+                                (bytes_written + i < cur_max_len)) begin
+                                
+                                assembled_data[i*8 +: 8] = fifo_mem[rd_idx];
+                                assembled_strb[i] = 1'b1;
+                                valid_bytes = valid_bytes + 8'd1;
                             end
                         end
                         
-                        m_axi_wdata  <= new_wdata;
-                        m_axi_wstrb  <= new_wstrb;
+                        m_axi_wdata  <= assembled_data;
+                        m_axi_wstrb  <= assembled_strb;
                         m_axi_wvalid <= 1'b1;
+                        m_axi_wlast  <= (burst_beat_cnt == burst_len);
                         
-                        // Update pointers
-                        fifo_rd_ptr   <= fifo_rd_ptr + bytes_this_beat[FIFO_ADDR_W-1:0];
-                        bytes_written <= bytes_written + bytes_this_beat;
-                        cur_addr      <= cur_addr + AXI_BYTES;
+                        bytes_written <= bytes_written + valid_bytes[7:0];
+                        bytes_remaining <= bytes_remaining - valid_bytes[7:0];
+                        cur_addr <= cur_addr + AXI_BYTES;
                         
-                        // Check if last beat of burst
-                        is_last_beat = (bytes_written + bytes_this_beat >= bytes_to_write) ||
-                                       (bytes_written + bytes_this_beat >= cur_max_len) ||
-                                       ((bytes_written + bytes_this_beat - bytes_written) >= burst_bytes);
-                        
-                        // Simplified: count beats
-                        if (wdata_byte_idx >= burst_len) begin
-                            m_axi_wlast <= 1'b1;
+                        if (burst_beat_cnt == burst_len) begin
                             m_axi_bready <= 1'b1;
                             state <= ST_WAIT_B;
                         end else begin
-                            m_axi_wlast <= 1'b0;
-                            wdata_byte_idx <= wdata_byte_idx + 1;
+                            burst_beat_cnt <= burst_beat_cnt + 8'd1;
                         end
                     end
                 end
                 
                 //--------------------------------------------------------------
-                // Wait for write response
+                // WAIT_B: Wait for write response
                 //--------------------------------------------------------------
                 ST_WAIT_B: begin
                     if (m_axi_bvalid) begin
                         m_axi_bready <= 1'b0;
                         
                         if (m_axi_bresp != 2'b00) begin
+                            // AXI error
                             error <= 1'b1;
                             state <= ST_ERROR;
+                            
+                        end else if ((bytes_written >= pkt_len) || 
+                                     (bytes_written >= cur_max_len)) begin
+                            // Packet complete
+                            state <= ST_WRITEBACK;
+                            
                         end else begin
-                            // More data to write?
-                            if (bytes_written < bytes_to_write && bytes_written < cur_max_len) begin
-                                state <= ST_CALC_BURST;
-                            end else begin
-                                state <= ST_WRITEBACK;
-                            end
+                            // More data to transfer
+                            state <= ST_CALC_BURST;
                         end
                     end
                 end
                 
                 //--------------------------------------------------------------
-                // Writeback descriptor
+                // WRITEBACK: Update descriptor with status
                 //--------------------------------------------------------------
                 ST_WRITEBACK: begin
-                    wb_valid  <= 1'b1;
-                    wb_index  <= cur_index;
-                    wb_length <= bytes_written;
-                    wb_status <= {28'd0,
-                                  pkt_error,    // Error
-                                  1'b1,         // LAST (single descriptor per packet)
-                                  1'b1,         // DONE
-                                  1'b0};        // OWN=0
-                    
-                    // Update stats
-                    rx_pkt_cnt  <= rx_pkt_cnt + 1;
-                    rx_byte_cnt <= rx_byte_cnt + bytes_written;
-                    
-                    state <= ST_WAIT_WB;
-                end
-                
-                ST_WAIT_WB: begin
-                    if (wb_ready) begin
-                        wb_valid <= 1'b0;
-                        state <= ST_IDLE;
+                    if (!wb_valid || wb_ready) begin
+                        wb_valid  <= 1'b1;
+                        wb_index  <= cur_index;
+                        wb_length <= bytes_written;
+                        wb_status <= {28'd0,
+                                      pkt_error,    // [3] Error
+                                      1'b1,         // [2] EOP (end of packet)
+                                      1'b1,         // [1] Complete
+                                      1'b0};        // [0] Owned by SW
+                        
+                        // Update statistics
+                        rx_pkt_cnt  <= rx_pkt_cnt + 32'd1;
+                        rx_byte_cnt <= rx_byte_cnt + {16'd0, bytes_written};
+                        
+                        if (wb_ready) begin
+                            wb_valid <= 1'b0;
+                            state <= ST_IDLE;
+                        end
                     end
                 end
                 
                 //--------------------------------------------------------------
-                // Drop packet (no descriptor available)
+                // DROP_PKT: Discard packet (no descriptor available)
                 //--------------------------------------------------------------
                 ST_DROP_PKT: begin
-                    // This state is entered from external logic
-                    // Drain FIFO until end of packet
-                    if (s_axis_tlast && s_axis_tvalid) begin
-                        rx_drop_cnt <= rx_drop_cnt + 1;
+                    // Wait for packet to complete, then discard
+                    if (pkt_complete) begin
+                        rx_drop_cnt <= rx_drop_cnt + 32'd1;
                         state <= ST_IDLE;
                     end
                 end
                 
                 //--------------------------------------------------------------
-                // Error state
+                // ERROR: Fatal error state
                 //--------------------------------------------------------------
                 ST_ERROR: begin
-                    // Stuck until reset
-                    m_axi_wvalid <= 1'b0;
-                    m_axi_bready <= 1'b0;
+                    // Remain here until reset
+                    error <= 1'b1;
                 end
                 
-                default: state <= ST_IDLE;
+                default: begin
+                    state <= ST_IDLE;
+                end
             endcase
         end
     end

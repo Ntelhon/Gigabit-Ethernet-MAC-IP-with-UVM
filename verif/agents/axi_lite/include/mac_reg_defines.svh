@@ -35,16 +35,16 @@ parameter bit [31:0] RX_ERR_CNT      = 32'h0000_0020;  // RX error counter
 parameter bit [31:0] VERSION         = 32'h0000_0024;  // IP Version
 
 // Legacy aliases for backward compatibility
-parameter bit [31:0] ADDR_MAC_LO     = MAC_ADDR_LO;
-parameter bit [31:0] ADDR_MAC_HI     = MAC_ADDR_HI;
-parameter bit [31:0] ADDR_CONTROL    = CONTROL;
-parameter bit [31:0] ADDR_STATUS     = STATUS;
-parameter bit [31:0] ADDR_INT_STATUS = INT_STATUS;
-parameter bit [31:0] ADDR_INT_MASK   = INT_MASK;
-parameter bit [31:0] ADDR_TX_CNT     = TX_FRAME_CNT;
-parameter bit [31:0] ADDR_RX_CNT     = RX_FRAME_CNT;
-parameter bit [31:0] ADDR_RX_ERR     = RX_ERR_CNT;
-parameter bit [31:0] ADDR_VERSION    = VERSION;
+parameter bit [31:0] MAC_LO_REG         = MAC_ADDR_LO;
+parameter bit [31:0] MAC_HI_REG         = MAC_ADDR_HI;
+parameter bit [31:0] MAC_CONTROL_REG    = CONTROL;
+parameter bit [31:0] MAC_STATUS_REG     = STATUS;
+parameter bit [31:0] MAC_INT_STATUS_REG = INT_STATUS;
+parameter bit [31:0] MAC_INT_MASK_REG   = INT_MASK;
+parameter bit [31:0] MAC_TX_CNT_REG     = TX_FRAME_CNT;
+parameter bit [31:0] MAC_RX_CNT_REG     = RX_FRAME_CNT;
+parameter bit [31:0] MAC_RX_ERR_REG     = RX_ERR_CNT;
+parameter bit [31:0] MAC_VERSION_REG    = VERSION;
 
 //==============================================================================
 // CONTROL Register Bit Fields (Offset 0x008)

@@ -166,7 +166,9 @@ module eth_controller_top #(
     input  wire [7:0]                   gmii_rxd,
     input  wire                         gmii_rx_dv,
     input  wire                         gmii_rx_er,
-    
+    input  wire                         gmii_col,
+    input  wire                         gmii_crs,
+
     //--------------------------------------------------------------------------
     // Interrupts
     //--------------------------------------------------------------------------
@@ -250,7 +252,7 @@ module eth_controller_top #(
     //==========================================================================
     eth_controller_regs #(
         .DMA_ENABLE (DMA_ENABLE),
-        .ADDR_WIDTH (10)
+        .ADDR_WIDTH (AXI_ADDR_WIDTH)
     ) u_regs (
         .clk            (sys_clk),
         .rst_n          (sys_rst_n),
@@ -373,7 +375,9 @@ module eth_controller_top #(
         .gmii_rxd       (gmii_rxd),
         .gmii_rx_dv     (gmii_rx_dv),
         .gmii_rx_er     (gmii_rx_er),
-        
+        .gmii_col       (gmii_col),
+        .gmii_crs       (gmii_crs),
+
         // Interrupt
         .irq        (mac_irq_internal)
     );

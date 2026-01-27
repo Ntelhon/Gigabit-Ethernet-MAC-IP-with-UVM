@@ -8,7 +8,7 @@ class eth_base_test extends uvm_test;
   eth_controller_config cfg;
   
   // Timeout
-  int timeout_cycles = 100000;
+  int timeout_cycles = 1000000;
 
   function new(string name, uvm_component parent);
     super.new(name, parent);

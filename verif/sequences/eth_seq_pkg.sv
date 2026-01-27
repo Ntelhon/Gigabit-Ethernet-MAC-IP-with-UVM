@@ -22,6 +22,8 @@ package eth_seq_pkg;
 
   import uvm_pkg::*;
   `include "uvm_macros.svh"
+
+  `include "../top/eth_tb_params.svh"
   
   // Import agent packages (needed for sequences)
   import axi_stream_pkg::*;

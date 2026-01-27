@@ -2,6 +2,8 @@ package eth_environment_pkg;
 
   import uvm_pkg::*;
   `include "uvm_macros.svh"
+
+  `include "../../top/eth_tb_params.svh"
   
   // Import agent packages
   import axi_stream_pkg::*;
