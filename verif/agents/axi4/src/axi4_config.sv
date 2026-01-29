@@ -3,7 +3,7 @@ class axi4_config extends uvm_object;
 
   // Agent configuration
   uvm_active_passive_enum is_active = UVM_ACTIVE;
-  axi4_agent_type_e       agent_type = AXI4_MASTER;
+  axi4_agent_type_e       agent_type = AXI4_SLAVE;
   
   // Interface parameters
   int addr_width = 32;

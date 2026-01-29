@@ -80,6 +80,22 @@ interface axi4_if #(
     output rready;
   endclocking
 
+  clocking slave_driver_cb @(posedge clk);
+    default input #1step output #1ns;
+    // Write channels
+    input  awid, awaddr, awlen, awsize, awburst, awlock, awcache, awprot, awqos, awregion, awuser, awvalid;
+    output awready;
+    input  wdata, wstrb, wlast, wuser, wvalid;
+    output wready;
+    output bid, bresp, buser, bvalid;
+    input  bready;
+    // Read channels
+    input  arid, araddr, arlen, arsize, arburst, arlock, arcache, arprot, arqos, arregion, aruser, arvalid;
+    output arready;
+    output rid, rdata, rresp, rlast, ruser, rvalid;
+    input  rready;
+  endclocking
+
   clocking monitor_cb @(posedge clk);
     default input #1step output #1ns;
     input awid, awaddr, awlen, awsize, awburst, awlock, awcache, awprot, awqos, awregion, awuser, awvalid, awready;
@@ -91,6 +107,7 @@ interface axi4_if #(
 
   // Modports
   modport master_driver (clocking master_driver_cb, input rst_n);
+  modport slave_driver  (clocking slave_driver_cb,  input rst_n);
   modport monitor (clocking monitor_cb, input rst_n);
 
 endinterface : axi4_if

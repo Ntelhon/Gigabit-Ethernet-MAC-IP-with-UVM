@@ -164,7 +164,7 @@ module eth_tb_top;
     uvm_config_db#(virtual axi_stream_if#(`AXI_STREAM_PARAMS))::set(null, "*.dma_env_h.axis_tx_agent*", "vif", axis_mac_rx_if);
     uvm_config_db#(virtual axi_stream_if#(`AXI_STREAM_PARAMS))::set(null, "*.dma_env_h.axis_rx_agent*", "vif", axis_mac_tx_if);
 
-    uvm_config_db#(virtual axi4_if#(`AXI4_PARAMS))::set(null, "*.dma_env_h.axi4_master_agent*", "vif", axi4_mem_if);
+    uvm_config_db#(virtual axi4_if#(`AXI4_PARAMS))::set(null, "*.dma_env_h.axi4_slave_agent*", "vif", axi4_mem_if);
     uvm_config_db#(virtual axi_lite_if#(`AXI_LITE_PARAMS))::set(null, "*.axi_lite_agent_h*", "vif", axi_lite_if);
 
     uvm_config_db#(virtual gmii_if)::set(null, "*.mac_env_h.gmii_tx_agent*", "vif", gmii_if);

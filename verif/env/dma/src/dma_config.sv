@@ -29,8 +29,8 @@ class dma_config extends uvm_object;
     super.new(name);
     
     axi4_mem_cfg = axi4_config::type_id::create("axi4_mem_cfg");
-    axi4_mem_cfg.agent_type = AXI4_MASTER;
-    axi4_mem_cfg.is_active = UVM_PASSIVE;  // Monitor only
+    axi4_mem_cfg.agent_type = AXI4_SLAVE;  // Slave agent for memory
+    axi4_mem_cfg.is_active = UVM_ACTIVE;   // Driver active to respond to DMA requests
     
     axis_tx_cfg = axi_stream_config::type_id::create("axis_tx_cfg");
     axis_tx_cfg.is_active = UVM_PASSIVE;  // DMA drives, we monitor
