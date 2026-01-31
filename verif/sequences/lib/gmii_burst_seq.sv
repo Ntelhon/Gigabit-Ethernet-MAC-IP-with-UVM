@@ -8,7 +8,7 @@ class gmii_burst_seq extends uvm_sequence#(gmii_item);
   rand int packet_size_max;
   
   constraint c_burst {
-    num_packets inside {[10:50]};
+    num_packets inside {[2:50]};
     packet_size_min inside {[64:128]};
     packet_size_max inside {[129:512]};
     packet_size_min < packet_size_max;

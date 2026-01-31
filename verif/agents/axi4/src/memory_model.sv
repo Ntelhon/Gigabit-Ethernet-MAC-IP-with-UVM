@@ -3,6 +3,9 @@ class memory_model extends uvm_component;
 
   `uvm_component_utils(memory_model)
 
+  // UVM event for DMA write completion
+  uvm_event dma_write_event;
+
   // Simple associative array for memory
   byte unsigned mem[bit[31:0]];
   
@@ -12,6 +15,7 @@ class memory_model extends uvm_component;
 
   function new(string name, uvm_component parent);
     super.new(name, parent);
+    dma_write_event = new("dma_write_event");
   endfunction
 
   // Write data to memory
@@ -20,6 +24,7 @@ class memory_model extends uvm_component;
       mem[addr + i] = data[i];
     end
     writes++;
+    dma_write_event.trigger();
     `uvm_info("MEM_MODEL", $sformatf("Write: addr=0x%0h, size=%0d", addr, size_bytes), UVM_HIGH)
   endfunction
 

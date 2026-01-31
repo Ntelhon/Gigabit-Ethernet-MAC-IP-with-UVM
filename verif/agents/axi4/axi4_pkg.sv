@@ -26,6 +26,9 @@ package axi4_pkg;
   // AXI4 Agent Includes
   `include "include/axi4_agent_includes.svh"
 
+  // Memory Model Include
+  `include "src/memory_model.sv"
+
   // AXI4 Agent Components
   `include "src/axi4_item.sv"
   `include "src/axi4_config.sv"

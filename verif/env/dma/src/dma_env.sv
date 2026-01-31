@@ -29,7 +29,7 @@ class dma_env extends uvm_env;
     
     // Create memory model
     mem = memory_model::type_id::create("mem", this);
-    uvm_config_db#(memory_model)::set(this, "scoreboard", "mem", mem);
+    uvm_config_db#(memory_model)::set(this, "*", "mem", mem);
     
     // Configure and create agents
     uvm_config_db#(axi4_config)::set(this, "axi4_slave_agent", "cfg", cfg.axi4_mem_cfg);

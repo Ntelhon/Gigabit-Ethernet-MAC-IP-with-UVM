@@ -18,6 +18,8 @@ class axi_lite_write_seq extends axi_lite_base_seq;
     start_item(req);
     req.trans_type = AXI_LITE_WRITE;
     req.addr = this.addr;
+    req.addr_delay = 1;
+    req.data_delay = 2;
     req.data = this.data;
     req.strb = this.strb;
     finish_item(req);

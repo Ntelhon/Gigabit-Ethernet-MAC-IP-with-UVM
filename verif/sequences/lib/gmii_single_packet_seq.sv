@@ -32,6 +32,10 @@ class gmii_single_packet_seq extends uvm_sequence#(gmii_item);
     });
     
     finish_item(pkt);
+
+    // Get Response (if any)
+    get_response(pkt);
+
     `uvm_info("GMII_PKT", $sformatf("Sent packet: %0d bytes", pkt.payload.size()), UVM_MEDIUM)
   endtask
 

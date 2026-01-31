@@ -1,0 +1,136 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<wave_config>
+   <wave_state>
+   </wave_state>
+   <db_ref_list>
+      <db_ref path="/home/fkarabulut/Desktop/AI-IP/Gigabit-Ethernet-MAC-IP-with-UVM/sim/vivado/results/eth_rx_path_test/eth_rx_path_test.wdb" id="1">
+         <top_modules>
+            <top_module name="axi4_pkg" />
+            <top_module name="axi_lite_pkg" />
+            <top_module name="axi_stream_pkg" />
+            <top_module name="eth_environment_pkg" />
+            <top_module name="eth_seq_pkg" />
+            <top_module name="eth_tb_top" />
+            <top_module name="eth_test_pkg" />
+            <top_module name="glbl" />
+            <top_module name="gmii_pkg" />
+            <top_module name="std" />
+            <top_module name="uvm_pkg" />
+         </top_modules>
+      </db_ref>
+   </db_ref_list>
+   <zoom_setting>
+      <ZoomStartTime time="115,439.000 ns"></ZoomStartTime>
+      <ZoomEndTime time="115,886.001 ns"></ZoomEndTime>
+      <Cursor1Time time="115,555.000 ns"></Cursor1Time>
+   </zoom_setting>
+   <column_width_setting>
+      <NameColumnWidth column_width="185"></NameColumnWidth>
+      <ValueColumnWidth column_width="197"></ValueColumnWidth>
+   </column_width_setting>
+   <WVObjectSize size="26" />
+   <wvobject type="logic" fp_name="/eth_tb_top/dut/u_regs/clk">
+      <obj_property name="ElementShortName">clk</obj_property>
+      <obj_property name="ObjectShortName">clk</obj_property>
+   </wvobject>
+   <wvobject type="logic" fp_name="/eth_tb_top/dut/u_regs/s_axi_arvalid">
+      <obj_property name="ElementShortName">s_axi_arvalid</obj_property>
+      <obj_property name="ObjectShortName">s_axi_arvalid</obj_property>
+   </wvobject>
+   <wvobject type="logic" fp_name="/eth_tb_top/dut/u_regs/s_axi_arready">
+      <obj_property name="ElementShortName">s_axi_arready</obj_property>
+      <obj_property name="ObjectShortName">s_axi_arready</obj_property>
+   </wvobject>
+   <wvobject type="array" fp_name="/eth_tb_top/dut/u_regs/s_axi_araddr">
+      <obj_property name="ElementShortName">s_axi_araddr[31:0]</obj_property>
+      <obj_property name="ObjectShortName">s_axi_araddr[31:0]</obj_property>
+   </wvobject>
+   <wvobject type="array" fp_name="/eth_tb_top/dut/u_regs/s_axi_arprot">
+      <obj_property name="ElementShortName">s_axi_arprot[2:0]</obj_property>
+      <obj_property name="ObjectShortName">s_axi_arprot[2:0]</obj_property>
+   </wvobject>
+   <wvobject type="logic" fp_name="/eth_tb_top/dut/u_regs/s_axi_rvalid">
+      <obj_property name="ElementShortName">s_axi_rvalid</obj_property>
+      <obj_property name="ObjectShortName">s_axi_rvalid</obj_property>
+   </wvobject>
+   <wvobject type="logic" fp_name="/eth_tb_top/dut/u_regs/s_axi_rready">
+      <obj_property name="ElementShortName">s_axi_rready</obj_property>
+      <obj_property name="ObjectShortName">s_axi_rready</obj_property>
+   </wvobject>
+   <wvobject type="array" fp_name="/eth_tb_top/dut/u_regs/s_axi_rdata">
+      <obj_property name="ElementShortName">s_axi_rdata[31:0]</obj_property>
+      <obj_property name="ObjectShortName">s_axi_rdata[31:0]</obj_property>
+   </wvobject>
+   <wvobject type="array" fp_name="/eth_tb_top/dut/u_regs/s_axi_rresp">
+      <obj_property name="ElementShortName">s_axi_rresp[1:0]</obj_property>
+      <obj_property name="ObjectShortName">s_axi_rresp[1:0]</obj_property>
+   </wvobject>
+   <wvobject type="array" fp_name="/eth_tb_top/dut/u_regs/rd_state">
+      <obj_property name="ElementShortName">rd_state[2:0]</obj_property>
+      <obj_property name="ObjectShortName">rd_state[2:0]</obj_property>
+   </wvobject>
+   <wvobject type="logic" fp_name="/eth_tb_top/dut/u_regs/mac_arvalid">
+      <obj_property name="ElementShortName">mac_arvalid</obj_property>
+      <obj_property name="ObjectShortName">mac_arvalid</obj_property>
+   </wvobject>
+   <wvobject type="logic" fp_name="/eth_tb_top/dut/u_regs/mac_arready">
+      <obj_property name="ElementShortName">mac_arready</obj_property>
+      <obj_property name="ObjectShortName">mac_arready</obj_property>
+   </wvobject>
+   <wvobject type="array" fp_name="/eth_tb_top/dut/u_regs/mac_araddr">
+      <obj_property name="ElementShortName">mac_araddr[7:0]</obj_property>
+      <obj_property name="ObjectShortName">mac_araddr[7:0]</obj_property>
+   </wvobject>
+   <wvobject type="array" fp_name="/eth_tb_top/dut/u_regs/mac_arprot">
+      <obj_property name="ElementShortName">mac_arprot[2:0]</obj_property>
+      <obj_property name="ObjectShortName">mac_arprot[2:0]</obj_property>
+   </wvobject>
+   <wvobject type="logic" fp_name="/eth_tb_top/dut/u_regs/mac_rvalid">
+      <obj_property name="ElementShortName">mac_rvalid</obj_property>
+      <obj_property name="ObjectShortName">mac_rvalid</obj_property>
+   </wvobject>
+   <wvobject type="logic" fp_name="/eth_tb_top/dut/u_regs/mac_rready">
+      <obj_property name="ElementShortName">mac_rready</obj_property>
+      <obj_property name="ObjectShortName">mac_rready</obj_property>
+   </wvobject>
+   <wvobject type="array" fp_name="/eth_tb_top/dut/u_regs/mac_rdata">
+      <obj_property name="ElementShortName">mac_rdata[31:0]</obj_property>
+      <obj_property name="ObjectShortName">mac_rdata[31:0]</obj_property>
+   </wvobject>
+   <wvobject type="array" fp_name="/eth_tb_top/dut/u_regs/mac_rresp">
+      <obj_property name="ElementShortName">mac_rresp[1:0]</obj_property>
+      <obj_property name="ObjectShortName">mac_rresp[1:0]</obj_property>
+   </wvobject>
+   <wvobject type="logic" fp_name="/eth_tb_top/dut/u_mac/u_mac_regs/s_axi_arvalid">
+      <obj_property name="ElementShortName">s_axi_arvalid</obj_property>
+      <obj_property name="ObjectShortName">s_axi_arvalid</obj_property>
+   </wvobject>
+   <wvobject type="logic" fp_name="/eth_tb_top/dut/u_mac/u_mac_regs/s_axi_arready">
+      <obj_property name="ElementShortName">s_axi_arready</obj_property>
+      <obj_property name="ObjectShortName">s_axi_arready</obj_property>
+   </wvobject>
+   <wvobject type="array" fp_name="/eth_tb_top/dut/u_mac/u_mac_regs/s_axi_araddr">
+      <obj_property name="ElementShortName">s_axi_araddr[7:0]</obj_property>
+      <obj_property name="ObjectShortName">s_axi_araddr[7:0]</obj_property>
+   </wvobject>
+   <wvobject type="logic" fp_name="/eth_tb_top/dut/u_mac/u_mac_regs/s_axi_rvalid">
+      <obj_property name="ElementShortName">s_axi_rvalid</obj_property>
+      <obj_property name="ObjectShortName">s_axi_rvalid</obj_property>
+   </wvobject>
+   <wvobject type="logic" fp_name="/eth_tb_top/dut/u_mac/u_mac_regs/s_axi_rready">
+      <obj_property name="ElementShortName">s_axi_rready</obj_property>
+      <obj_property name="ObjectShortName">s_axi_rready</obj_property>
+   </wvobject>
+   <wvobject type="array" fp_name="/eth_tb_top/dut/u_mac/u_mac_regs/s_axi_rdata">
+      <obj_property name="ElementShortName">s_axi_rdata[31:0]</obj_property>
+      <obj_property name="ObjectShortName">s_axi_rdata[31:0]</obj_property>
+   </wvobject>
+   <wvobject type="array" fp_name="/eth_tb_top/dut/u_mac/u_mac_regs/s_axi_rresp">
+      <obj_property name="ElementShortName">s_axi_rresp[1:0]</obj_property>
+      <obj_property name="ObjectShortName">s_axi_rresp[1:0]</obj_property>
+   </wvobject>
+   <wvobject type="logic" fp_name="/eth_tb_top/dut/u_mac/u_mac_regs/rd_state">
+      <obj_property name="ElementShortName">rd_state</obj_property>
+      <obj_property name="ObjectShortName">rd_state</obj_property>
+   </wvobject>
+</wave_config>

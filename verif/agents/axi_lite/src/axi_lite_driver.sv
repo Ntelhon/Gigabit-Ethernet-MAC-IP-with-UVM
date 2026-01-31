@@ -92,25 +92,29 @@ class axi_lite_driver #(
   endtask
 
   task drive_read(item_t item);
+    `uvm_info("DRIVE_READ", "Starting read transaction", UVM_LOW)
     // Read address channel
     repeat(item.addr_delay) @(vif.master_driver_cb);
-    vif.master_driver_cb.arvalid <= 1'b1;
-    vif.master_driver_cb.araddr  <= item.addr;
-    vif.master_driver_cb.arprot  <= item.prot;
+    `uvm_info("DRIVE_READ", $sformatf("Address: 0x%0h, Prot: %0d", item.addr, item.prot), UVM_LOW)
+    vif.arvalid <= 1'b1;
+    vif.araddr  <= item.addr;
+    vif.arprot  <= item.prot;
     
     do @(vif.master_driver_cb);
     while(vif.master_driver_cb.arready !== 1'b1);
+    `uvm_info("DRIVE_READ", "Read address accepted by DUT", UVM_LOW)
     
-    vif.master_driver_cb.arvalid <= 1'b0;
+    vif.arvalid <= 1'b0;
     
     // Read data channel
-    vif.master_driver_cb.rready <= 1'b1;
+    vif.rready <= 1'b1;
     do @(vif.master_driver_cb);
     while(vif.master_driver_cb.rvalid !== 1'b1);
+    `uvm_info("DRIVE_READ", $sformatf("Data: 0x%0h, Resp: %0d", vif.master_driver_cb.rdata, vif.master_driver_cb.rresp), UVM_LOW)
     
     item.read_data = vif.master_driver_cb.rdata;
     item.resp      = vif.master_driver_cb.rresp;
-    vif.master_driver_cb.rready <= 1'b0;
+    vif.rready <= 1'b0;
   endtask
 
 endclass : axi_lite_driver

@@ -11,6 +11,7 @@ class axi4_driver #(
   typedef axi4_item#(ADDR_WIDTH, DATA_WIDTH, ID_WIDTH, USER_WIDTH) item_t;
   virtual axi4_if#(ADDR_WIDTH, DATA_WIDTH, ID_WIDTH, USER_WIDTH) vif;
   axi4_config cfg;
+  memory_model mem;
 
   function new(string name, uvm_component parent);
     super.new(name, parent);
@@ -23,6 +24,9 @@ class axi4_driver #(
 
     if(!uvm_config_db#(virtual axi4_if#(ADDR_WIDTH, DATA_WIDTH, ID_WIDTH, USER_WIDTH))::get(this, "", "vif", vif))
       `uvm_fatal("NOVIF", "Virtual interface not set for axi4_driver")
+
+    if(!uvm_config_db#(memory_model)::get(this, "", "mem", mem))
+      `uvm_fatal("NOMEM", "Memory model not found")
   endfunction
 
   task run_phase(uvm_phase phase);
@@ -200,7 +204,7 @@ class axi4_driver #(
     end
   endtask
 
-  virtual task drive_slave_read();
+  task drive_slave_read();
     item_t item;
     item_t rsp;
     
@@ -260,24 +264,27 @@ class axi4_driver #(
     
     // Write data for each beat
     for (int beat = 0; beat < burst_len; beat++) begin
-        // Write bytes based on strobe
-        for (int byte_idx = 0; byte_idx < data_width_bytes; byte_idx++) begin
-            if (req.strb[beat][byte_idx]) begin
-                bit[63:0] byte_addr = addr + byte_idx;
-                bit[7:0] byte_data = req.data[beat][byte_idx*8 +: 8];
-                //write_memory(byte_addr, byte_data);
-            end
+      // Write bytes based on strobe
+      for (int byte_idx = 0; byte_idx < data_width_bytes; byte_idx++) begin
+        if (req.strb[beat][byte_idx]) begin
+          byte unsigned tmp_data[];
+          bit[63:0] byte_addr = addr + byte_idx;
+          tmp_data[0] = req.data[beat][byte_idx*8 +: 8];
+          mem.write_mem(byte_addr, tmp_data, 1);
         end
-        
-        // Next address
-        if (req.burst == 2'b01) begin  // INCR
-            addr += data_width_bytes;
-        end else if (req.burst == 2'b10) begin  // WRAP
-            bit[63:0] burst_size = burst_len * data_width_bytes;
-            addr += data_width_bytes;
-            if (addr >= (req.addr + burst_size))
-                addr = req.addr;  // Wrap around
-        end // FIXED does not change address
+      end
+      
+      // Next address
+      if (req.burst == 2'b01) begin  // INCR
+        addr += data_width_bytes;
+      end else if (req.burst == 2'b10) begin  // WRAP
+        bit[63:0] burst_size = burst_len * data_width_bytes;
+        addr += data_width_bytes;
+        if (addr >= (req.addr + burst_size))
+          addr = req.addr;  // Wrap around
+      end else begin
+        // FIXED - do not change address
+      end
     end
     
     `uvm_info(get_type_name(), $sformatf("WRITE: addr=0x%0h, len=%0d, size=%0d", req.addr, burst_len, data_width_bytes), UVM_MEDIUM)
@@ -299,9 +306,14 @@ class axi4_driver #(
     rsp.data = new[burst_len];
     rsp.resp = new[burst_len];
     for (int i = 0; i < burst_len; i++) begin
-        //rsp.data[i] = read_memory(addr);
-        rsp.resp[i] = 2'b00;  // OKAY
-        addr += data_width_bytes;
+      byte unsigned tmp_data[];
+      mem.read_mem(addr, tmp_data, data_width_bytes);
+      // Pack bytes into rsp.data[i]
+      for (int b = 0; b < data_width_bytes; b++) begin
+          rsp.data[i][8*b +: 8] = tmp_data[b];
+      end
+      rsp.resp[i] = 2'b00;  // OKAY
+      addr += data_width_bytes;
     end
 
     `uvm_info(get_type_name(), $sformatf("READ: addr=0x%0h, len=%0d, size=%0d", req.addr, burst_len, data_width_bytes), UVM_MEDIUM)

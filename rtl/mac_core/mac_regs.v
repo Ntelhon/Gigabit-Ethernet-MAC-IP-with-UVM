@@ -2,6 +2,8 @@
 // Module: mac_regs
 // Description: AXI4-Lite slave register interface for Gigabit Ethernet MAC
 //
+// FIXED VERSION - Corrected write state machine deadlock issue
+//
 // Features:
 //   - AXI4-Lite slave interface (32-bit data, configurable address width)
 //   - MAC address registers (48-bit, stored in two 32-bit registers)
@@ -144,15 +146,16 @@ module mac_regs #(
     //==========================================================================
     // AXI Write State Machine
     //==========================================================================
-    // States: IDLE -> Wait for both AWVALID and WVALID -> RESP
-    // Note: We use a simple two-phase handshake approach
-    //==========================================================================
     localparam WR_IDLE  = 2'b00;
-    localparam WR_DATA  = 2'b01;
+    localparam WR_WAIT  = 2'b01;
     localparam WR_RESP  = 2'b10;
 
     reg [1:0] wr_state;
     reg [ADDR_WIDTH-1:0] wr_addr_latched;
+    reg [DATA_WIDTH-1:0] wr_data_latched;
+    reg [DATA_WIDTH/8-1:0] wr_strb_latched;
+    reg wr_addr_valid;
+    reg wr_data_valid;
 
     //==========================================================================
     // AXI Read State Machine
@@ -184,12 +187,16 @@ module mac_regs #(
     assign irq = |(reg_int_status & reg_int_mask);
 
     //==========================================================================
-    // AXI Write State Machine
+    // AXI Write State Machine - FIXED VERSION
     //==========================================================================
     always @(posedge clk) begin
         if (!rst_n) begin
             wr_state        <= WR_IDLE;
             wr_addr_latched <= {ADDR_WIDTH{1'b0}};
+            wr_data_latched <= {DATA_WIDTH{1'b0}};
+            wr_strb_latched <= {DATA_WIDTH/8{1'b0}};
+            wr_addr_valid   <= 1'b0;
+            wr_data_valid   <= 1'b0;
             s_axi_awready   <= 1'b0;
             s_axi_wready    <= 1'b0;
             s_axi_bvalid    <= 1'b0;
@@ -197,39 +204,47 @@ module mac_regs #(
         end else begin
             case (wr_state)
                 WR_IDLE: begin
+                    // Clear response
                     s_axi_bvalid <= 1'b0;
-                    // Ready to accept both address and data
+                    wr_addr_valid <= 1'b0;
+                    wr_data_valid <= 1'b0;
+                    
+                    // Assert ready for both channels
                     s_axi_awready <= 1'b1;
                     s_axi_wready  <= 1'b1;
                     
-                    // Wait for both address and data valid
-                    if (s_axi_awvalid && s_axi_wvalid) begin
+                    // Capture address if present
+                    if (s_axi_awvalid && s_axi_awready) begin
                         wr_addr_latched <= s_axi_awaddr;
-                        s_axi_awready   <= 1'b0;
-                        s_axi_wready    <= 1'b0;
-                        wr_state        <= WR_RESP;
-                    end else if (s_axi_awvalid) begin
-                        // Address arrived first, wait for data
-                        wr_addr_latched <= s_axi_awaddr;
-                        s_axi_awready   <= 1'b0;
-                        wr_state        <= WR_DATA;
+                        wr_addr_valid   <= 1'b1;
                     end
-                end
-
-                WR_DATA: begin
-                    // Waiting for write data
-                    if (s_axi_wvalid) begin
-                        s_axi_wready <= 1'b0;
-                        wr_state     <= WR_RESP;
+                    
+                    // Capture data if present
+                    if (s_axi_wvalid && s_axi_wready) begin
+                        wr_data_latched <= s_axi_wdata;
+                        wr_strb_latched <= s_axi_wstrb;
+                        wr_data_valid   <= 1'b1;
+                    end
+                    
+                    // Transition when both are available
+                    if ((s_axi_awvalid || wr_addr_valid) && (s_axi_wvalid || wr_data_valid)) begin
+                        s_axi_awready <= 1'b0;
+                        s_axi_wready  <= 1'b0;
+                        wr_addr_valid <= 1'b0;
+                        wr_data_valid <= 1'b0;
+                        wr_state      <= WR_RESP;
                     end
                 end
 
                 WR_RESP: begin
                     // Generate write response
-                    s_axi_bvalid <= 1'b1;
-                    s_axi_bresp  <= RESP_OKAY;  // Always OKAY, writes to RO regs ignored
+                    if (!s_axi_bvalid) begin
+                        s_axi_bvalid <= 1'b1;
+                        s_axi_bresp  <= RESP_OKAY;
+                    end
                     
-                    if (s_axi_bready && s_axi_bvalid) begin
+                    // Wait for response acceptance
+                    if (s_axi_bvalid && s_axi_bready) begin
                         s_axi_bvalid <= 1'b0;
                         wr_state     <= WR_IDLE;
                     end
@@ -243,17 +258,22 @@ module mac_regs #(
     end
 
     //==========================================================================
-    // Register Write Logic
-    // Verification Note: Write strobes are supported for byte-level access
-    // Assertion: Only specified bytes should be modified based on WSTRB
+    // Register Write Logic - FIXED VERSION
     //==========================================================================
     wire wr_en;
-    assign wr_en = (wr_state == WR_IDLE && s_axi_awvalid && s_axi_wvalid) ||
-                   (wr_state == WR_DATA && s_axi_wvalid);
-
-    // Determine effective write address
-    wire [7:0] wr_addr_eff;
-    assign wr_addr_eff = (wr_state == WR_IDLE) ? s_axi_awaddr[7:0] : wr_addr_latched[7:0];
+    wire [DATA_WIDTH-1:0] wr_data_eff;
+    wire [DATA_WIDTH/8-1:0] wr_strb_eff;
+    wire [ADDR_WIDTH-1:0] wr_addr_eff;
+    
+    // Write enable when we have both address and data in IDLE state
+    assign wr_en = (wr_state == WR_IDLE) && 
+                   (s_axi_awvalid || wr_addr_valid) && 
+                   (s_axi_wvalid || wr_data_valid);
+    
+    // Use current signals if valid, otherwise use latched values
+    assign wr_addr_eff = (s_axi_awvalid) ? s_axi_awaddr : wr_addr_latched;
+    assign wr_data_eff = (s_axi_wvalid) ? s_axi_wdata : wr_data_latched;
+    assign wr_strb_eff = (s_axi_wvalid) ? s_axi_wstrb : wr_strb_latched;
 
     always @(posedge clk) begin
         if (!rst_n) begin
@@ -275,49 +295,43 @@ module mac_regs #(
             // Handle register writes
             //------------------------------------------------------------------
             if (wr_en) begin
-                case (wr_addr_eff)
+                case (wr_addr_eff[7:0])
                     ADDR_MAC_LO: begin
-                        // MAC Address Low - byte-wise write
-                        if (s_axi_wstrb[0]) reg_mac_lo[7:0]   <= s_axi_wdata[7:0];
-                        if (s_axi_wstrb[1]) reg_mac_lo[15:8]  <= s_axi_wdata[15:8];
-                        if (s_axi_wstrb[2]) reg_mac_lo[23:16] <= s_axi_wdata[23:16];
-                        if (s_axi_wstrb[3]) reg_mac_lo[31:24] <= s_axi_wdata[31:24];
+                        if (wr_strb_eff[0]) reg_mac_lo[7:0]   <= wr_data_eff[7:0];
+                        if (wr_strb_eff[1]) reg_mac_lo[15:8]  <= wr_data_eff[15:8];
+                        if (wr_strb_eff[2]) reg_mac_lo[23:16] <= wr_data_eff[23:16];
+                        if (wr_strb_eff[3]) reg_mac_lo[31:24] <= wr_data_eff[31:24];
                     end
 
                     ADDR_MAC_HI: begin
-                        // MAC Address High - only lower 16 bits used
-                        if (s_axi_wstrb[0]) reg_mac_hi[7:0]  <= s_axi_wdata[7:0];
-                        if (s_axi_wstrb[1]) reg_mac_hi[15:8] <= s_axi_wdata[15:8];
+                        if (wr_strb_eff[0]) reg_mac_hi[7:0]  <= wr_data_eff[7:0];
+                        if (wr_strb_eff[1]) reg_mac_hi[15:8] <= wr_data_eff[15:8];
                     end
 
                     ADDR_CONTROL: begin
-                        // Control register
-                        if (s_axi_wstrb[0]) begin
-                            reg_tx_enable <= s_axi_wdata[0];
-                            reg_rx_enable <= s_axi_wdata[1];
+                        if (wr_strb_eff[0]) begin
+                            reg_tx_enable <= wr_data_eff[0];
+                            reg_rx_enable <= wr_data_eff[1];
                         end
                     end
 
                     ADDR_INT_STATUS: begin
-                        // Interrupt Status - Write-1-to-Clear (RW1C)
-                        // Verification Note: Writing 1 clears, writing 0 has no effect
-                        // Simultaneously capture new interrupts and clear acknowledged ones
-                        if (s_axi_wstrb[0]) begin
-                            reg_int_status <= (reg_int_status | int_capture) & ~s_axi_wdata[3:0];
+                        // Write-1-to-Clear with simultaneous interrupt capture
+                        if (wr_strb_eff[0]) begin
+                            reg_int_status <= (reg_int_status | int_capture) & ~wr_data_eff[3:0];
                         end
                     end
 
                     ADDR_INT_MASK: begin
-                        // Interrupt Mask
-                        if (s_axi_wstrb[0]) begin
-                            reg_int_mask <= s_axi_wdata[3:0];
+                        if (wr_strb_eff[0]) begin
+                            reg_int_mask <= wr_data_eff[3:0];
                         end
                     end
 
                     // All other addresses (STATUS, counters, VERSION) are read-only
                     // Writes are silently ignored - no side effects
                     default: begin
-                        // No operation - intentionally empty
+                        // Read-only registers - writes ignored
                     end
                 endcase
             end
@@ -349,26 +363,29 @@ module mac_regs #(
                 end
 
                 RD_DATA: begin
-                    s_axi_rvalid <= 1'b1;
-                    s_axi_rresp  <= RESP_OKAY;
+                    // Generate read response
+                    if (!s_axi_rvalid) begin
+                        s_axi_rvalid <= 1'b1;
+                        s_axi_rresp  <= RESP_OKAY;
+                        
+                        // Decode read address and return data
+                        case (rd_addr_latched[7:0])
+                            ADDR_MAC_LO:     s_axi_rdata <= reg_mac_lo;
+                            ADDR_MAC_HI:     s_axi_rdata <= {16'h0000, reg_mac_hi};
+                            ADDR_CONTROL:    s_axi_rdata <= {30'b0, reg_rx_enable, reg_tx_enable};
+                            ADDR_STATUS:     s_axi_rdata <= {30'b0, rx_active, tx_active};
+                            ADDR_INT_STATUS: s_axi_rdata <= {28'b0, reg_int_status};
+                            ADDR_INT_MASK:   s_axi_rdata <= {28'b0, reg_int_mask};
+                            ADDR_TX_FRAME:   s_axi_rdata <= tx_frame_cnt;
+                            ADDR_RX_FRAME:   s_axi_rdata <= rx_frame_cnt;
+                            ADDR_RX_ERR:     s_axi_rdata <= rx_err_cnt;
+                            ADDR_VERSION:    s_axi_rdata <= VERSION;
+                            default:         s_axi_rdata <= 32'hDEAD_BEEF;
+                        endcase
+                    end
                     
-                    // Decode read address and return data
-                    // Verification Note: Reads have no side effects
-                    case (rd_addr_latched[7:0])
-                        ADDR_MAC_LO:     s_axi_rdata <= reg_mac_lo;
-                        ADDR_MAC_HI:     s_axi_rdata <= {16'h0000, reg_mac_hi};
-                        ADDR_CONTROL:    s_axi_rdata <= {30'b0, reg_rx_enable, reg_tx_enable};
-                        ADDR_STATUS:     s_axi_rdata <= {30'b0, rx_active, tx_active};
-                        ADDR_INT_STATUS: s_axi_rdata <= {28'b0, reg_int_status};
-                        ADDR_INT_MASK:   s_axi_rdata <= {28'b0, reg_int_mask};
-                        ADDR_TX_FRAME:   s_axi_rdata <= tx_frame_cnt;
-                        ADDR_RX_FRAME:   s_axi_rdata <= rx_frame_cnt;
-                        ADDR_RX_ERR:     s_axi_rdata <= rx_err_cnt;
-                        ADDR_VERSION:    s_axi_rdata <= VERSION;
-                        default:         s_axi_rdata <= 32'hDEAD_BEEF; // Debug pattern for invalid address
-                    endcase
-                    
-                    if (s_axi_rready && s_axi_rvalid) begin
+                    // Wait for response acceptance
+                    if (s_axi_rvalid && s_axi_rready) begin
                         s_axi_rvalid <= 1'b0;
                         rd_state     <= RD_IDLE;
                     end

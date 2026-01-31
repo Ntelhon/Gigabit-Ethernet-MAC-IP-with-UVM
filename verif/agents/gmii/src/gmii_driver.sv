@@ -24,13 +24,13 @@ class gmii_driver extends uvm_driver #(gmii_item);
     
     forever begin
       seq_item_port.get_next_item(req);
-      
+
       if(cfg.direction == GMII_TX)
         drive_tx_frame(req);
       else
         drive_rx_frame(req);
       
-      seq_item_port.item_done();
+      seq_item_port.item_done(req);
     end
   endtask
 
@@ -62,7 +62,6 @@ class gmii_driver extends uvm_driver #(gmii_item);
       vif.tx_driver_cb.txd   <= frame[i];
       @(vif.tx_driver_cb);
     end
-    
     // End of frame
     vif.tx_driver_cb.tx_en <= 1'b0;
     vif.tx_driver_cb.tx_er <= 1'b0;

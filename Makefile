@@ -475,7 +475,7 @@ waves_vivado:
 	@echo "Opening Vivado waveform viewer..."
 	@WDB_FILE=$(VIVADO_RESULTS)/$(TEST)/$(TEST).wdb; \
 	if [ -f "$$WDB_FILE" ]; then \
-		$(VIVADO) -mode gui -source $(VIVADO_DIR)/open_waves.tcl -tclargs $$WDB_FILE &; \
+		$(VIVADO) -mode gui -source $(VIVADO_DIR)/open_waves.tcl -tclargs $$WDB_FILE & \
 	else \
 		echo "ERROR: Waveform file not found: $$WDB_FILE"; \
 		echo "Run simulation with WAVES=1 first."; \

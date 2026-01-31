@@ -15,6 +15,8 @@ class axi4_agent #(
   driver_t    driver;
   monitor_t   monitor;
   sequencer_t sequencer;
+
+  memory_model mem;
   
   axi4_config cfg;
 
@@ -27,6 +29,9 @@ class axi4_agent #(
     
     if(!uvm_config_db#(axi4_config)::get(this, "", "cfg", cfg))
       `uvm_fatal("NOCFG", "Config object not found")
+
+    if(!uvm_config_db#(memory_model)::get(this, "", "mem", mem))
+      `uvm_fatal("NOMEM", "Memory model not found")
     
     monitor = monitor_t::type_id::create("monitor", this);
     uvm_config_db#(axi4_config)::set(this, "monitor", "cfg", cfg);

@@ -17,7 +17,6 @@ package eth_environment_pkg;
   `include "../mac/src/mac_env.sv"
   
   // DMA Environment Components
-  `include "../dma/src/memory_model.sv"
   `include "../dma/src/dma_config.sv"
   `include "../dma/src/dma_scoreboard.sv"
   `include "../dma/src/dma_env.sv"

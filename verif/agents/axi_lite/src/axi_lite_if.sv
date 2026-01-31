@@ -64,4 +64,50 @@ interface axi_lite_if #(
   modport master_driver (clocking master_driver_cb, input rst_n);
   modport monitor (clocking monitor_cb, input rst_n);
 
+  //============================================================================
+  // Protocol Assertions (Optional but recommended)
+  //============================================================================
+  `ifdef ENABLE_ASSERTIONS
+  
+  // Write address channel stability
+  property p_awvalid_stable;
+    @(posedge clk) disable iff (!rst_n)
+    awvalid && !awready |=> $stable(awaddr) && $stable(awprot) && awvalid;
+  endproperty
+  aw_stable: assert property(p_awvalid_stable)
+    else $error("AWVALID changed before AWREADY");
+
+  // Write data channel stability
+  property p_wvalid_stable;
+    @(posedge clk) disable iff (!rst_n)
+    wvalid && !wready |=> $stable(wdata) && $stable(wstrb) && wvalid;
+  endproperty
+  w_stable: assert property(p_wvalid_stable)
+    else $error("WVALID changed before WREADY");
+
+  // Write response stability
+  property p_bvalid_stable;
+    @(posedge clk) disable iff (!rst_n)
+    bvalid && !bready |=> $stable(bresp) && bvalid;
+  endproperty
+  b_stable: assert property(p_bvalid_stable)
+    else $error("BVALID changed before BREADY");
+
+  // Read address channel stability
+  property p_arvalid_stable;
+    @(posedge clk) disable iff (!rst_n)
+    arvalid && !arready |=> $stable(araddr) && $stable(arprot) && arvalid;
+  endproperty
+  ar_stable: assert property(p_arvalid_stable)
+    else $error("ARVALID changed before ARREADY");
+
+  // Read data channel stability
+  property p_rvalid_stable;
+    @(posedge clk) disable iff (!rst_n)
+    rvalid && !rready |=> $stable(rdata) && $stable(rresp) && rvalid;
+  endproperty
+  r_stable: assert property(p_rvalid_stable)
+    else $error("RVALID changed before RREADY");
+  
+  `endif
 endinterface : axi_lite_if

@@ -17,6 +17,7 @@ class eth_rx_path_vseq extends eth_base_vseq;
     mac_reg_config_seq mac_cfg_seq;
     dma_reg_config_seq dma_cfg_seq;
     gmii_burst_seq     gmii_burst;
+    axi_lite_read_seq  axi_read_seq;
     
     `uvm_info("ETH_RX", "Starting RX path test", UVM_LOW)
     
@@ -39,10 +40,50 @@ class eth_rx_path_vseq extends eth_base_vseq;
     // Send packets from PHY to MAC
     gmii_burst = gmii_burst_seq::type_id::create("gmii_burst");
     gmii_burst.num_packets = this.num_packets;
+    gmii_burst.packet_size_min = 64;
+    gmii_burst.packet_size_max = 512;
     gmii_burst.start(p_sequencer.gmii_rx_sqr);
     
-    // Wait for DMA to process
-    #10us;
+    #100us;  // Wait for packets to be processed
+
+    // Read MAC and DMA status registers (optional, for verification)
+    axi_read_seq = axi_lite_read_seq::type_id::create("axi_read_seq");
+
+    `uvm_info("ETH_RX", "Reading MAC and DMA status registers", UVM_LOW)
+    axi_read_seq.addr = MAC_VERSION_REG;
+    axi_read_seq.start(p_sequencer.axi_lite_sqr);
+
+    axi_read_seq.addr = MAC_CONTROL_REG;  // MAC TX/RX enable control register
+    axi_read_seq.start(p_sequencer.axi_lite_sqr);
+
+    axi_read_seq.addr = MAC_STATUS_REG;  // MAC status register
+    axi_read_seq.start(p_sequencer.axi_lite_sqr);
+    
+    axi_read_seq.addr = MAC_INT_MASK_REG; // MAC interrupt mask register
+    axi_read_seq.start(p_sequencer.axi_lite_sqr);
+
+    axi_read_seq.addr = MAC_INT_STATUS_REG; // MAC interrupt status register
+    axi_read_seq.start(p_sequencer.axi_lite_sqr);
+
+    axi_read_seq.addr = MAC_RX_CNT_REG;  // MAC RX status register
+    axi_read_seq.start(p_sequencer.axi_lite_sqr);
+
+    axi_read_seq.addr = MAC_TX_CNT_REG;  // MAC TX status register
+    axi_read_seq.start(p_sequencer.axi_lite_sqr);
+
+    axi_read_seq.addr = MAC_RX_ERR_REG;  // MAC RX error status register
+    axi_read_seq.start(p_sequencer.axi_lite_sqr);
+
+    axi_read_seq.addr = DMA_RX_PKT_CNT;  // DMA RX status register
+    axi_read_seq.start(p_sequencer.axi_lite_sqr);
+
+    axi_read_seq.addr = DMA_TX_PKT_CNT;  // DMA TX status register
+    axi_read_seq.start(p_sequencer.axi_lite_sqr);
+
+    // Wait for DMA to process all packets
+    for (int i = 0; i < num_packets; i++) begin
+      p_sequencer.mem.dma_write_event.wait_on();
+    end
     
     `uvm_info("ETH_RX", "RX path test complete", UVM_LOW)
   endtask

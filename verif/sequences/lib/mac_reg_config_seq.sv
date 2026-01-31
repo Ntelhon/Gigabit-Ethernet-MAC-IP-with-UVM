@@ -37,6 +37,12 @@ class mac_reg_config_seq extends uvm_sequence;
     wr_seq.addr = MAC_HI_REG;
     wr_seq.data = {16'h0, mac_address[47:32]};
     wr_seq.start(m_sequencer);
+
+    // Configure MAC Interrupt Mask Register (enable all interrupts)
+    wr_seq = axi_lite_write_seq::type_id::create("wr_seq");
+    wr_seq.addr = MAC_INT_MASK_REG;
+    wr_seq.data = 32'hFFFF_FFFF;
+    wr_seq.start(m_sequencer);
     
     `uvm_info("MAC_CFG", $sformatf("MAC configured: TX=%0b, RX=%0b, Addr=%0h", 
                                     enable_tx, enable_rx, mac_address), UVM_LOW)

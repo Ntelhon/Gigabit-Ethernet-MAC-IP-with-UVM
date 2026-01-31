@@ -17,6 +17,10 @@ sim/vivado/*.wdb
 sim/vivado/*.pb
 sim/vivado/.Xil/
 
+# Vivado gui files
+vivado.jou
+vivado_*.backup.jou
+
 # Xcelium simulation
 sim/xcelium/xcelium.d/
 sim/xcelium/INCA_libs/
