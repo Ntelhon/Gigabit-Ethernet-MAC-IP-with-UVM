@@ -72,6 +72,9 @@ COV ?= 0
 # Enable debug output (0 or 1)
 DEBUG ?= 0
 
+# Enable assertions (0 or 1)
+ASSERTIONS ?= 1
+
 # Top module
 TOP ?= tb_top
 
@@ -244,6 +247,7 @@ info:
 	@echo "  Waves:           $(WAVES)"
 	@echo "  Coverage:        $(COV)"
 	@echo "  Debug:           $(DEBUG)"
+	@echo "  Assertions:      $(ASSERTIONS)"
 	@echo "  Project Root:    $(PROJ_ROOT)"
 	@echo ""
 
@@ -296,7 +300,7 @@ endif
 	@echo "==============================================================================="
 	@echo ""
 	@mkdir -p $(VIVADO_WORK)
-	@cd $(VIVADO_DIR) && DEBUG_MODE=$(DEBUG) $(VIVADO) -mode batch -source $(VIVADO_COMPILE_TCL) \
+	@cd $(VIVADO_DIR) && DEBUG_MODE=$(DEBUG) ASSERTIONS=$(ASSERTIONS) $(VIVADO) -mode batch -source $(VIVADO_COMPILE_TCL) \
 		-notrace -nojournal \
 		2>&1 | tee $(VIVADO_DIR)/compile.log
 	@echo ""

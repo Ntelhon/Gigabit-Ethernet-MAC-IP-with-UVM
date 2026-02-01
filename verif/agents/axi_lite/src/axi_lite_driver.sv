@@ -25,6 +25,8 @@ class axi_lite_driver #(
 
   task run_phase(uvm_phase phase);
     reset_signals();
+    wait(vif.rst_n == 1'b1);
+    repeat(5) @(vif.master_driver_cb);
     
     forever begin
       seq_item_port.get_next_item(req);
@@ -66,6 +68,8 @@ class axi_lite_driver #(
         while(vif.master_driver_cb.awready !== 1'b1);
         
         vif.master_driver_cb.awvalid <= 1'b0;
+        vif.master_driver_cb.awaddr  <= '0;
+        vif.master_driver_cb.awprot  <= '0;
       end
       
       // Write data channel
@@ -79,6 +83,8 @@ class axi_lite_driver #(
         while(vif.master_driver_cb.wready !== 1'b1);
         
         vif.master_driver_cb.wvalid <= 1'b0;
+        vif.master_driver_cb.wdata  <= '0;
+        vif.master_driver_cb.wstrb  <= '0;
       end
     join
     
@@ -92,29 +98,27 @@ class axi_lite_driver #(
   endtask
 
   task drive_read(item_t item);
-    `uvm_info("DRIVE_READ", "Starting read transaction", UVM_LOW)
     // Read address channel
     repeat(item.addr_delay) @(vif.master_driver_cb);
-    `uvm_info("DRIVE_READ", $sformatf("Address: 0x%0h, Prot: %0d", item.addr, item.prot), UVM_LOW)
-    vif.arvalid <= 1'b1;
-    vif.araddr  <= item.addr;
-    vif.arprot  <= item.prot;
-    
+    vif.master_driver_cb.arvalid <= 1'b1;
+    vif.master_driver_cb.araddr  <= item.addr;
+    vif.master_driver_cb.arprot  <= item.prot;
+
     do @(vif.master_driver_cb);
     while(vif.master_driver_cb.arready !== 1'b1);
-    `uvm_info("DRIVE_READ", "Read address accepted by DUT", UVM_LOW)
-    
-    vif.arvalid <= 1'b0;
-    
+
+    vif.master_driver_cb.arvalid <= 1'b0;
+    vif.master_driver_cb.araddr  <= '0;
+    vif.master_driver_cb.arprot  <= '0;
+
     // Read data channel
-    vif.rready <= 1'b1;
+    vif.master_driver_cb.rready <= 1'b1;
     do @(vif.master_driver_cb);
     while(vif.master_driver_cb.rvalid !== 1'b1);
-    `uvm_info("DRIVE_READ", $sformatf("Data: 0x%0h, Resp: %0d", vif.master_driver_cb.rdata, vif.master_driver_cb.rresp), UVM_LOW)
     
     item.read_data = vif.master_driver_cb.rdata;
     item.resp      = vif.master_driver_cb.rresp;
-    vif.rready <= 1'b0;
+    vif.master_driver_cb.rready <= 1'b0;
   endtask
 
 endclass : axi_lite_driver

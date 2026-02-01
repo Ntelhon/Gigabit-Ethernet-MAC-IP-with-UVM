@@ -750,57 +750,79 @@ module eth_controller_regs #(
     //==========================================================================
     
     `ifdef ENABLE_ASSERTIONS
-        // Write channel assertions
         
-        // AWVALID must remain stable until AWREADY
-        always @(posedge clk) begin
-            if (rst_n && s_axi_awvalid && !s_axi_awready) begin
-                assert($stable(s_axi_awaddr));
-                assert($stable(s_axi_awprot));
-            end
-        end
+        // Register previous values for stability checking
+        reg [ADDR_WIDTH-1:0] prev_awaddr;
+        reg [2:0] prev_awprot;
+        reg [31:0] prev_wdata;
+        reg [3:0] prev_wstrb;
+        reg [1:0] prev_bresp;
+        reg [ADDR_WIDTH-1:0] prev_araddr;
+        reg [2:0] prev_arprot;
+        reg [31:0] prev_rdata;
+        reg [1:0] prev_rresp;
         
-        // WVALID must remain stable until WREADY
-        always @(posedge clk) begin
-            if (rst_n && s_axi_wvalid && !s_axi_wready) begin
-                assert($stable(s_axi_wdata));
-                assert($stable(s_axi_wstrb));
-            end
-        end
-        
-        // BVALID must remain stable until BREADY
-        always @(posedge clk) begin
-            if (rst_n && s_axi_bvalid && !s_axi_bready) begin
-                assert($stable(s_axi_bresp));
-            end
-        end
-        
-        // Read channel assertions
-        
-        // ARVALID must remain stable until ARREADY
-        always @(posedge clk) begin
-            if (rst_n && s_axi_arvalid && !s_axi_arready) begin
-                assert($stable(s_axi_araddr));
-                assert($stable(s_axi_arprot));
-            end
-        end
-        
-        // RVALID must remain stable until RREADY
-        always @(posedge clk) begin
-            if (rst_n && s_axi_rvalid && !s_axi_rready) begin
-                assert($stable(s_axi_rdata));
-                assert($stable(s_axi_rresp));
-            end
-        end
-        
-        // No simultaneous valid on both MAC and DMA outputs
         always @(posedge clk) begin
             if (rst_n) begin
-                assert(!(mac_awvalid && dma_awvalid));
-                assert(!(mac_wvalid && dma_wvalid));
-                assert(!(mac_arvalid && dma_arvalid));
+                // Store previous values
+                prev_awaddr <= s_axi_awaddr;
+                prev_awprot <= s_axi_awprot;
+                prev_wdata  <= s_axi_wdata;
+                prev_wstrb  <= s_axi_wstrb;
+                prev_bresp  <= s_axi_bresp;
+                prev_araddr <= s_axi_araddr;
+                prev_arprot <= s_axi_arprot;
+                prev_rdata  <= s_axi_rdata;
+                prev_rresp  <= s_axi_rresp;
+                
+                // Check stability - AWVALID
+                if (s_axi_awvalid && !s_axi_awready) begin
+                    if (s_axi_awaddr !== prev_awaddr)
+                        $error("AWADDR changed while AWVALID=1 and AWREADY=0");
+                    if (s_axi_awprot !== prev_awprot)
+                        $error("AWPROT changed while AWVALID=1 and AWREADY=0");
+                end
+                
+                // Check stability - WVALID
+                if (s_axi_wvalid && !s_axi_wready) begin
+                    if (s_axi_wdata !== prev_wdata)
+                        $error("WDATA changed while WVALID=1 and WREADY=0");
+                    if (s_axi_wstrb !== prev_wstrb)
+                        $error("WSTRB changed while WVALID=1 and WREADY=0");
+                end
+                
+                // Check stability - BVALID
+                if (s_axi_bvalid && !s_axi_bready) begin
+                    if (s_axi_bresp !== prev_bresp)
+                        $error("BRESP changed while BVALID=1 and BREADY=0");
+                end
+                
+                // Check stability - ARVALID
+                if (s_axi_arvalid && !s_axi_arready) begin
+                    if (s_axi_araddr !== prev_araddr)
+                        $error("ARADDR changed while ARVALID=1 and ARREADY=0");
+                    if (s_axi_arprot !== prev_arprot)
+                        $error("ARPROT changed while ARVALID=1 and ARREADY=0");
+                end
+                
+                // Check stability - RVALID
+                if (s_axi_rvalid && !s_axi_rready) begin
+                    if (s_axi_rdata !== prev_rdata)
+                        $error("RDATA changed while RVALID=1 and RREADY=0");
+                    if (s_axi_rresp !== prev_rresp)
+                        $error("RRESP changed while RVALID=1 and RREADY=0");
+                end
+                
+                // Check no simultaneous MAC/DMA valid
+                if (mac_awvalid && dma_awvalid)
+                    $error("Both MAC and DMA AWVALID asserted");
+                if (mac_wvalid && dma_wvalid)
+                    $error("Both MAC and DMA WVALID asserted");
+                if (mac_arvalid && dma_arvalid)
+                    $error("Both MAC and DMA ARVALID asserted");
             end
         end
         
     `endif
+
 endmodule

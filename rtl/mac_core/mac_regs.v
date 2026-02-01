@@ -227,12 +227,14 @@ module mac_regs #(
                     end
                     
                     // Transition when both are available
-                    if ((s_axi_awvalid || wr_addr_valid) && (s_axi_wvalid || wr_data_valid)) begin
-                        s_axi_awready <= 1'b0;
-                        s_axi_wready  <= 1'b0;
-                        wr_addr_valid <= 1'b0;
-                        wr_data_valid <= 1'b0;
-                        wr_state      <= WR_RESP;
+                    if (((s_axi_awvalid && s_axi_awready) || wr_addr_valid)) begin
+                        if ((s_axi_wvalid && s_axi_wready) || wr_data_valid) begin
+                            s_axi_awready <= 1'b0;
+                            s_axi_wready  <= 1'b0;
+                            wr_addr_valid <= 1'b0;
+                            wr_data_valid <= 1'b0;
+                            wr_state      <= WR_RESP;
+                        end
                     end
                 end
 

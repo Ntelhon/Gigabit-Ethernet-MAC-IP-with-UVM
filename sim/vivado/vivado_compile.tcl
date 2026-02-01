@@ -256,6 +256,12 @@ if {[info exists ::env(DEBUG_MODE)] && $::env(DEBUG_MODE) == 1} {
     lappend verilog_defines "DEBUG"
 }
 
+# Check for ASSERTIONS from environment variable
+if {[info exists ::env(ASSERTIONS)] && $::env(ASSERTIONS) == 1} {
+    puts "ASSERTIONS enabled - adding ENABLE_ASSERTIONS define"
+    lappend verilog_defines "ENABLE_ASSERTIONS"
+}
+
 set_property verilog_define $verilog_defines [get_filesets sim_1]
 
 #-------------------------------------------------------------------------------
