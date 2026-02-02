@@ -11,7 +11,7 @@ class eth_virtual_sequencer extends uvm_sequencer;
   // ==========================================
   // MAC-side sequencers
   // ==========================================
-  gmii_sequencer             gmii_rx_sqr;  // Drive packets into MAC from PHY
+  gmii_sequencer             gmii_phy_sqr;  // Drive packets into MAC from PHY
   
   // ==========================================
   // DMA-side sequencers (none - DMA drives itself)

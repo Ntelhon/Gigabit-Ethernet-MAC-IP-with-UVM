@@ -49,6 +49,10 @@ package eth_seq_pkg;
   // Register Configuration Sequences
   `include "lib/mac_reg_config_seq.sv"
   `include "lib/dma_reg_config_seq.sv"
+
+  // Control/Status Sequences
+  `include "lib/mac_control_seq.sv"
+  `include "lib/dma_control_seq.sv"
   
   // GMII Packet Sequences
   `include "lib/gmii_single_packet_seq.sv"

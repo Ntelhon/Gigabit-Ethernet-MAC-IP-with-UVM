@@ -22,14 +22,14 @@ interface gmii_if(
   logic       mdio_t;  // Tristate control
 
   // Clocking blocks
-  clocking tx_driver_cb @(posedge gtx_clk);
-    default input #1step output #1ns;
-    output tx_en, tx_er, txd;
-  endclocking
-
   clocking rx_driver_cb @(posedge rx_clk);
     default input #1step output #1ns;
     output rx_dv, rx_er, rxd;
+  endclocking
+
+  clocking tx_driver_cb @(posedge gtx_clk);
+    default input #1step output #1ns;
+    output tx_en, tx_er, txd;
   endclocking
 
   clocking tx_monitor_cb @(posedge gtx_clk);
@@ -43,8 +43,8 @@ interface gmii_if(
   endclocking
 
   // Modports
-  modport tx_driver (clocking tx_driver_cb, input rst_n);
-  modport rx_driver (clocking rx_driver_cb, input rst_n);
+  modport rx_driver  (clocking rx_driver_cb, input rst_n);
+  modport tx_driver  (clocking tx_driver_cb, input rst_n);
   modport tx_monitor (clocking tx_monitor_cb, input rst_n);
   modport rx_monitor (clocking rx_monitor_cb, input rst_n);
 

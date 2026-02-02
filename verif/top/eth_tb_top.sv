@@ -39,7 +39,7 @@ module eth_tb_top;
   // DUT instantiation (placeholder - connect to actual RTL)
   eth_controller_top #(
     // DMA Enable
-    .DMA_ENABLE(1),
+    .DMA_ENABLE(DMA_ENABLE),
 
     // AXI4-Lite parameters
     .AXI_ADDR_WIDTH(AXI_LITE_ADDR_WIDTH),
@@ -167,8 +167,7 @@ module eth_tb_top;
     uvm_config_db#(virtual axi4_if#(`AXI4_PARAMS))::set(null, "*.dma_env_h.axi4_slave_agent*", "vif", axi4_mem_if);
     uvm_config_db#(virtual axi_lite_if#(`AXI_LITE_PARAMS))::set(null, "*.axi_lite_agent_h*", "vif", axi_lite_if);
 
-    uvm_config_db#(virtual gmii_if)::set(null, "*.mac_env_h.gmii_tx_agent*", "vif", gmii_if);
-    uvm_config_db#(virtual gmii_if)::set(null, "*.mac_env_h.gmii_rx_agent*", "vif", gmii_if);
+    uvm_config_db#(virtual gmii_if)::set(null, "*.mac_env_h.gmii_phy_agent*", "vif", gmii_if);
     
     // Run test
     run_test();

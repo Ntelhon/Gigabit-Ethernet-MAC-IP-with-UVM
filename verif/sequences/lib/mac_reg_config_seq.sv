@@ -28,13 +28,13 @@ class mac_reg_config_seq extends uvm_sequence;
     
     // Configure MAC address low
     wr_seq = axi_lite_write_seq::type_id::create("wr_seq");
-    wr_seq.addr = MAC_LO_REG;
+    wr_seq.addr = MAC_ADDR_LO_REG;
     wr_seq.data = mac_address[31:0];
     wr_seq.start(m_sequencer);
     
     // Configure MAC address high
     wr_seq = axi_lite_write_seq::type_id::create("wr_seq");
-    wr_seq.addr = MAC_HI_REG;
+    wr_seq.addr = MAC_ADDR_HI_REG;
     wr_seq.data = {16'h0, mac_address[47:32]};
     wr_seq.start(m_sequencer);
 

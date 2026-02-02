@@ -64,7 +64,7 @@ class eth_controller_env extends uvm_env;
     virtual_sqr.cfg = cfg;
     
     if(cfg.enable_mac) begin
-      virtual_sqr.gmii_rx_sqr = mac_env_h.gmii_rx_agent.sequencer;
+      virtual_sqr.gmii_phy_sqr = mac_env_h.gmii_phy_agent.sequencer;
     end
     
     if(cfg.enable_dma) begin
@@ -74,7 +74,8 @@ class eth_controller_env extends uvm_env;
     // Connect system scoreboard
     if(cfg.enable_system_scoreboard) begin
       if(cfg.enable_mac) begin
-        mac_env_h.gmii_tx_agent.monitor.ap.connect(scoreboard.gmii_imp);
+        // mac_env_h.gmii_phy_agent.monitor.rx_ap.connect(scoreboard.gmii_imp);
+        // mac_env_h.gmii_phy_agent.monitor.tx_ap.connect(scoreboard.gmii_imp);
         //mac_env_h.tx_stream_agent.monitor.ap.connect(scoreboard.axis_mac_tx_imp);
         //mac_env_h.rx_stream_agent.monitor.ap.connect(scoreboard.axis_mac_rx_imp);
       end

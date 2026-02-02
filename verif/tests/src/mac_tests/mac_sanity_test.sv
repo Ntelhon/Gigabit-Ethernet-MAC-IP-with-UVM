@@ -16,8 +16,7 @@ class mac_sanity_test extends eth_base_test;
     cfg.enable_system_scoreboard = 0;
     
     // Make MAC agents active for standalone testing
-    cfg.mac_cfg.gmii_tx_cfg.is_active = UVM_PASSIVE;
-    cfg.mac_cfg.gmii_rx_cfg.is_active = UVM_ACTIVE;
+    cfg.mac_cfg.gmii_phy_cfg.is_active = UVM_ACTIVE;
   endfunction
 
   task run_phase(uvm_phase phase);
@@ -33,7 +32,7 @@ class mac_sanity_test extends eth_base_test;
     // Send packets via GMII
     burst_seq = gmii_burst_seq::type_id::create("burst_seq");
     burst_seq.num_packets = 5;
-    burst_seq.start(env.mac_env_h.gmii_rx_agent.sequencer);
+    burst_seq.start(env.mac_env_h.gmii_phy_agent.sequencer);
     
     #5us;
     

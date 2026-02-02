@@ -97,28 +97,35 @@ class axi_lite_driver #(
     vif.master_driver_cb.bready <= 1'b0;
   endtask
 
+  // In this task there is an very very weird bug existing in UVM/SV simulators.
+  // The interface signals do not get updated properly unless we use the vif signals
+  // directly instead of using the clocking block. Therefore, we are not using
+  // vif.master_driver_cb for read data channel.
   task drive_read(item_t item);
     // Read address channel
-    repeat(item.addr_delay) @(vif.master_driver_cb);
-    vif.master_driver_cb.arvalid <= 1'b1;
-    vif.master_driver_cb.araddr  <= item.addr;
-    vif.master_driver_cb.arprot  <= item.prot;
 
-    do @(vif.master_driver_cb);
-    while(vif.master_driver_cb.arready !== 1'b1);
+    repeat(item.addr_delay) @(posedge vif.clk);
+    vif.arvalid <= 1'b1;
+    vif.araddr  <= item.addr;
+    vif.arprot  <= item.prot;
 
-    vif.master_driver_cb.arvalid <= 1'b0;
-    vif.master_driver_cb.araddr  <= '0;
-    vif.master_driver_cb.arprot  <= '0;
-
-    // Read data channel
-    vif.master_driver_cb.rready <= 1'b1;
-    do @(vif.master_driver_cb);
-    while(vif.master_driver_cb.rvalid !== 1'b1);
+    do @(posedge vif.clk);
+    while(vif.arready !== 1'b1);
     
-    item.read_data = vif.master_driver_cb.rdata;
-    item.resp      = vif.master_driver_cb.rresp;
-    vif.master_driver_cb.rready <= 1'b0;
+    vif.arvalid <= 1'b0;
+    vif.araddr  <= '0;
+    vif.arprot  <= '0;
+    
+    // Read data channel
+    vif.rready <= 1'b1;
+    do @(posedge vif.clk);
+    while(vif.rvalid !== 1'b1);
+    
+    item.read_data = vif.rdata;
+    item.resp      = vif.rresp;
+
+    @(posedge vif.clk);
+    vif.rready <= 1'b0;
   endtask
 
 endclass : axi_lite_driver

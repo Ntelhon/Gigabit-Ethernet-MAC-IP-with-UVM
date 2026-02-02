@@ -3,7 +3,7 @@ class gmii_config extends uvm_object;
 
   // Agent configuration
   uvm_active_passive_enum is_active = UVM_ACTIVE;
-  gmii_direction_e        direction = GMII_TX;
+  gmii_direction_e        direction = GMII_RX;    // Default to RX for typical MAC testing (MAC receives data)
   
   // Speed configuration
   typedef enum {SPEED_10M, SPEED_100M, SPEED_1G} speed_e;
@@ -14,7 +14,12 @@ class gmii_config extends uvm_object;
   bit enable_coverage = 1;
   bit check_crc = 1;
   bit check_ifg = 1;
-  
+
+  // Driver Configuration
+  bit enable_padding = 1;
+  int unsigned min_frame_size = 64;
+  int unsigned default_ifg = 12;
+
   // Error injection probability
   int crc_error_percentage = 0;   // 0-100
 

@@ -1,5 +1,8 @@
 // File: /verif/top/eth_tb_params.svh
 
+// DMA Enable
+parameter DMA_ENABLE = 1;
+
 // AXI Lite parameters
 parameter AXI_LITE_ADDR_WIDTH = 32;
 parameter AXI_LITE_DATA_WIDTH = 32;

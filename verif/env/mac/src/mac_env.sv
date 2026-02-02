@@ -9,8 +9,7 @@ class mac_env extends uvm_env;
   // Agents
   axi_stream_agent#(`AXI_STREAM_PARAMS) tx_stream_agent;  // MAC → DMA
   axi_stream_agent#(`AXI_STREAM_PARAMS) rx_stream_agent;  // DMA → MAC
-  gmii_agent                            gmii_tx_agent;    // MAC → PHY
-  gmii_agent                            gmii_rx_agent;    // PHY → MAC
+  gmii_agent                            gmii_phy_agent;   // PHY → MAC Active Agent
   
   // Scoreboard
   mac_scoreboard scoreboard;
@@ -28,13 +27,11 @@ class mac_env extends uvm_env;
     // Configure and create agents
     uvm_config_db#(axi_stream_config)::set(this, "tx_stream_agent", "cfg", cfg.tx_stream_cfg);
     uvm_config_db#(axi_stream_config)::set(this, "rx_stream_agent", "cfg", cfg.rx_stream_cfg);
-    uvm_config_db#(gmii_config)::set(this, "gmii_tx_agent", "cfg", cfg.gmii_tx_cfg);
-    uvm_config_db#(gmii_config)::set(this, "gmii_rx_agent", "cfg", cfg.gmii_rx_cfg);
+    uvm_config_db#(gmii_config)::set(this, "gmii_phy_agent", "cfg", cfg.gmii_phy_cfg);
 
     tx_stream_agent = axi_stream_agent#(`AXI_STREAM_PARAMS)::type_id::create("tx_stream_agent", this);
     rx_stream_agent = axi_stream_agent#(`AXI_STREAM_PARAMS)::type_id::create("rx_stream_agent", this);
-    gmii_tx_agent   = gmii_agent::type_id::create("gmii_tx_agent", this);
-    gmii_rx_agent   = gmii_agent::type_id::create("gmii_rx_agent", this);
+    gmii_phy_agent   = gmii_agent::type_id::create("gmii_phy_agent", this);
     
     if(cfg.enable_scoreboard)
       scoreboard = mac_scoreboard::type_id::create("scoreboard", this);
@@ -45,12 +42,12 @@ class mac_env extends uvm_env;
     
     if(cfg.enable_scoreboard) begin
       // RX path: GMII RX → AXI-Stream TX
-      gmii_rx_agent.monitor.ap.connect(scoreboard.gmii_rx_imp);
+      gmii_phy_agent.monitor.rx_ap.connect(scoreboard.gmii_rx_imp);
       tx_stream_agent.monitor.ap.connect(scoreboard.axis_tx_imp);
       
       // TX path: AXI-Stream RX → GMII TX
       rx_stream_agent.monitor.ap.connect(scoreboard.axis_rx_imp);
-      gmii_tx_agent.monitor.ap.connect(scoreboard.gmii_tx_imp);
+      gmii_phy_agent.monitor.tx_ap.connect(scoreboard.gmii_tx_imp);
     end
   endfunction
 
