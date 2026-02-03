@@ -141,6 +141,13 @@ module mac_rx #(
     assign rx_dv_falling = gmii_rx_dv_d && !gmii_rx_dv;
 
     //==========================================================================
+    // RX Data Latching
+    //==========================================================================
+    reg [7:0]  rx_data_latched;
+    reg        rx_data_valid_latched;
+    reg        rx_sof_latched;
+
+    //==========================================================================
     // CRC Interface
     //==========================================================================
     // CRC init when idle, in SFD state (if used), or when in PREAMBLE and about to transition to DATA
@@ -347,15 +354,16 @@ module mac_rx #(
 
     //==========================================================================
     // RX Data Output Generation
+    // Note: The output signals are latched one cycle later for detecting EOF
     // Note: Data is output as received, FCS included
     // Upper layer or FIFO management should strip FCS if needed
     //==========================================================================
     always @(posedge clk) begin
         if (!rst_n) begin
-            rx_data       <= 8'h00;
-            rx_data_valid <= 1'b0;
-            rx_sof        <= 1'b0;
-            rx_eof        <= 1'b0;
+            rx_data_latched         <= 8'h00;
+            rx_data_valid_latched   <= 1'b0;
+            rx_sof_latched          <= 1'b0;
+            rx_eof                  <= 1'b0;
         end else begin
             // Default: no data
             rx_data       <= 8'h00;
@@ -366,22 +374,37 @@ module mac_rx #(
             case (state)
                 ST_DATA: begin
                     if (gmii_rx_dv) begin
-                        rx_data       <= gmii_rxd;
-                        rx_data_valid <= 1'b1;
-                        rx_sof        <= first_data_byte;
+                        rx_data_latched         <= gmii_rxd;
+                        rx_data_valid_latched   <= 1'b1;
+                        rx_sof_latched          <= first_data_byte;
+                    end 
+                    if (!gmii_rx_dv) begin
+                        // Signal end of frame on transition to CHECK
+                        // This is one cycle after last data
+                        rx_eof                  <= 1'b1;
+                        rx_data_valid_latched   <= 1'b0;
                     end
-                end
-
-                ST_CHECK: begin
-                    // Signal end of frame on transition to CHECK
-                    // This is one cycle after last data
-                    rx_eof <= 1'b1;
                 end
 
                 default: begin
                     // No output
                 end
             endcase
+        end
+    end
+
+    //=========================================================================
+    // Latch Outputs
+    //=========================================================================
+    always @(posedge clk) begin
+        if (!rst_n) begin
+            rx_data       <= 8'h00;
+            rx_data_valid <= 1'b0;
+            rx_sof        <= 1'b0;
+        end else begin
+            rx_data       <= rx_data_latched;
+            rx_data_valid <= rx_data_valid_latched;
+            rx_sof        <= rx_sof_latched;
         end
     end
 
@@ -393,8 +416,22 @@ module mac_rx #(
             rx_frame_good <= 1'b0;
             rx_frame_bad  <= 1'b0;
         end else begin
-            rx_frame_good <= (state == ST_COMMIT);
-            rx_frame_bad  <= (state == ST_DISCARD);
+            if ((state == ST_DATA) && (!gmii_rx_dv)) begin
+                if (rx_er_detected) begin                           // RX_ER during frame
+                    rx_frame_bad  <= 1'b1;
+                end else if (frame_byte_cnt < MIN_FRAME_SIZE) begin // Runt frame
+                    rx_frame_bad  <= 1'b1;
+                end else if (crc_out != CRC_RESIDUE) begin          // CRC error
+                    rx_frame_bad  <= 1'b1;
+                end else begin                                      // Good frame
+                    rx_frame_good <= 1'b1;
+                end
+            end 
+            if (state == ST_IDLE) begin
+                // Clear flags when idle
+                rx_frame_good <= 1'b0;
+                rx_frame_bad  <= 1'b0;
+            end
         end
     end
 

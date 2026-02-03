@@ -65,15 +65,17 @@ class mac_control_seq extends uvm_sequence;
       else
         `uvm_error("MAC_CFG", "MAC RX Received interrupt NOT reported when expected")
 
-    if (predicted_crc_irq == (rd_seq.read_data & MAC_INT_RX_CRC_ERR_BITMASK))
-      `uvm_info("MAC_CFG", "MAC RX CRC Error interrupt reported", UVM_LOW)
+    if (predicted_crc_irq)
+      if(rd_seq.read_data & MAC_INT_RX_CRC_ERR_BITMASK)
+        `uvm_info("MAC_CFG", "MAC RX CRC Error interrupt reported as expected", UVM_LOW)
     else
-      `uvm_error("MAC_CFG", "MAC RX CRC Error interrupt reported")
+      `uvm_error("MAC_CFG", "MAC RX CRC Error interrupt NOT reported when expected")
 
-    if (predicted_runt_irq == (rd_seq.read_data & MAC_INT_RX_RUNT_BITMASK))
-      `uvm_info("MAC_CFG", "MAC RX Runt Frame interrupt reported", UVM_LOW)
+    if (predicted_runt_irq)
+      if(rd_seq.read_data & MAC_INT_RX_RUNT_BITMASK)
+        `uvm_info("MAC_CFG", "MAC RX Runt Frame interrupt reported", UVM_LOW)
     else
-      `uvm_error("MAC_CFG", "MAC RX Runt Frame interrupt reported")
+      `uvm_error("MAC_CFG", "MAC RX Runt Frame interrupt NOT reported when expected")
 
   endtask
 

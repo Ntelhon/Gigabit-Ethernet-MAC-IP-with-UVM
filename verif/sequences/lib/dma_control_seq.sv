@@ -23,7 +23,7 @@ class dma_control_seq extends uvm_sequence;
     if (predicted_rx_count == rd_seq.read_data)
       `uvm_info("DMA_CTRL", $sformatf("Predicted RX count matched: %0d", rd_seq.read_data), UVM_LOW)
     else
-      `uvm_warning("DMA_CTRL", $sformatf("Predicted RX count mismatch! Expected: %0d, Actual: %0d", 
+      `uvm_error("DMA_CTRL", $sformatf("Predicted RX count mismatch! Expected: %0d, Actual: %0d", 
                                         predicted_rx_count, rd_seq.read_data))
                                         
     // DMA TX Count
@@ -32,7 +32,7 @@ class dma_control_seq extends uvm_sequence;
     if (predicted_tx_count == rd_seq.read_data)
       `uvm_info("DMA_CTRL", $sformatf("Predicted TX count matched: %0d", rd_seq.read_data), UVM_LOW)
     else
-      `uvm_warning("DMA_CTRL", $sformatf("Predicted TX count mismatch! Expected: %0d, Actual: %0d", 
+      `uvm_error("DMA_CTRL", $sformatf("Predicted TX count mismatch! Expected: %0d, Actual: %0d", 
                                         predicted_tx_count, rd_seq.read_data))
 
   endtask

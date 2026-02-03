@@ -55,8 +55,8 @@ module eth_tb_top;
     .DMA_ADDR_WIDTH(AXI4_ADDR_WIDTH),
     .DMA_DATA_WIDTH(AXI4_DATA_WIDTH),
     .DMA_MAX_BURST_LEN(16),
-    .DMA_TX_FIFO_DEPTH(32),
-    .DMA_RX_FIFO_DEPTH(32)
+    .DMA_TX_FIFO_DEPTH(4096),
+    .DMA_RX_FIFO_DEPTH(4096)
   ) dut (
     // System signals
     .sys_clk(clk_axi),
@@ -103,18 +103,18 @@ module eth_tb_top;
     .gmii_crs(1'b0),  // Tie-off
 
     // AXI-Stream MAC TX
-    .s_axis_tx_tdata(axis_mac_tx_if.tdata),
-    .s_axis_tx_tvalid(axis_mac_tx_if.tvalid),
-    .s_axis_tx_tlast(axis_mac_tx_if.tlast),
-    .s_axis_tx_tuser(axis_mac_tx_if.tuser),
-    .s_axis_tx_tready(axis_mac_tx_if.tready),
+    .s_axis_tx_tdata(),   // Connected implicitly
+    .s_axis_tx_tvalid(),  // Connected implicitly
+    .s_axis_tx_tlast(),   // Connected implicitly
+    .s_axis_tx_tuser(),   // Connected implicitly
+    .s_axis_tx_tready(),  // Connected implicitly
 
     // AXI-Stream MAC RX
-    .m_axis_rx_tdata(axis_mac_rx_if.tdata),
-    .m_axis_rx_tvalid(axis_mac_rx_if.tvalid),
-    .m_axis_rx_tlast(axis_mac_rx_if.tlast),
-    .m_axis_rx_tuser(axis_mac_rx_if.tuser),
-    .m_axis_rx_tready(axis_mac_rx_if.tready),
+    .m_axis_rx_tdata(),   // Connected implicitly
+    .m_axis_rx_tvalid(),  // Connected implicitly
+    .m_axis_rx_tlast(),   // Connected implicitly
+    .m_axis_rx_tuser(),   // Connected implicitly
+    .m_axis_rx_tready(),  // Connected implicitly
 
     // AXI4 Memory Master Interface
     // Write Address Channel
@@ -156,6 +156,34 @@ module eth_tb_top;
     .mac_irq(mac_irq),
     .dma_irq(dma_irq)
   );
+
+  //============================================================================
+  // Connect AXI Stream interfaces to internal MAC signals
+  //============================================================================
+  // When DMA is enabled, we want to monitor the MAC<->DMA interface
+  // The internal signals are: dut.mac_tx_axis_* and dut.mac_rx_axis_*
+  
+  // TX Path: Interface monitors data going TO the MAC (from DMA or external)
+  assign axis_mac_tx_if.tvalid = dut.mac_tx_axis_tvalid;
+  assign axis_mac_tx_if.tready = dut.mac_tx_axis_tready;
+  assign axis_mac_tx_if.tdata  = dut.mac_tx_axis_tdata;
+  assign axis_mac_tx_if.tlast  = dut.mac_tx_axis_tlast;
+  assign axis_mac_tx_if.tuser  = dut.mac_tx_axis_tuser;
+  assign axis_mac_tx_if.tstrb  = '1;  // Not used, tie to all 1s
+  assign axis_mac_tx_if.tkeep  = '1;  // Not used, tie to all 1s
+  assign axis_mac_tx_if.tdest  = '0;  // Not used
+  assign axis_mac_tx_if.tid    = '0;  // Not used
+  
+  // RX Path: Interface monitors data coming FROM the MAC (to DMA or external)
+  assign axis_mac_rx_if.tvalid = dut.mac_rx_axis_tvalid;
+  assign axis_mac_rx_if.tready = dut.mac_rx_axis_tready;
+  assign axis_mac_rx_if.tdata  = dut.mac_rx_axis_tdata;
+  assign axis_mac_rx_if.tlast  = dut.mac_rx_axis_tlast;
+  assign axis_mac_rx_if.tuser  = dut.mac_rx_axis_tuser;
+  assign axis_mac_rx_if.tstrb  = '1;  // Not used, tie to all 1s
+  assign axis_mac_rx_if.tkeep  = '1;  // Not used, tie to all 1s
+  assign axis_mac_rx_if.tdest  = '0;  // Not used
+  assign axis_mac_rx_if.tid    = '0;  // Not used
   
   // Interface registration
   initial begin

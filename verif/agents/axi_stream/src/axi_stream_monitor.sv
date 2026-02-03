@@ -45,6 +45,7 @@ class axi_stream_monitor #(
     end while(vif.monitor_cb.tvalid !== 1'b1);
     
     // Collect beats until tlast
+    `uvm_info(get_type_name(), $sformatf("Starting to monitor AXI-Stream transfer"), UVM_LOW)
     do begin
       if(vif.monitor_cb.tvalid && vif.monitor_cb.tready) begin
         item.data_queue.push_back(vif.monitor_cb.tdata);
@@ -53,11 +54,12 @@ class axi_stream_monitor #(
         item.user = vif.monitor_cb.tuser;
         item.dest = vif.monitor_cb.tdest;
         item.id   = vif.monitor_cb.tid;
-        
+
         if(vif.monitor_cb.tlast) break;
       end
       @(vif.monitor_cb);
     end while(1);
+    `uvm_info(get_type_name(), $sformatf("Finished monitoring AXI-Stream transfer"), UVM_LOW)
   endtask
 
 endclass : axi_stream_monitor
