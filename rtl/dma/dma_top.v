@@ -542,21 +542,25 @@ module dma_top #(
     );
 
     //--------------------------------------------------------------------------
-    // AXI Arbiter - Simple round-robin for multiple masters
+    // AXI Arbiter - Transaction-locked arbiter for multiple masters
     //--------------------------------------------------------------------------
     // Read channel: desc + txdma
     // Write channel: desc + rxdma
+    //
+    // CRITICAL: Arbiter must remain locked to selected master for entire
+    // transaction (AW + all W beats + B response) to maintain AXI protocol.
     
-    reg read_arb_sel;   // 0=desc, 1=txdma
-    reg write_arb_sel;  // 0=desc, 1=rxdma
+    reg read_arb_sel;    // 0=desc, 1=txdma
+    reg write_arb_sel;   // 0=desc, 1=rxdma
+    reg write_locked;    // Write transaction in progress, don't switch arbiter
     
-    // Read arbitration
+    // Read arbitration (address + data on same channel, uses AXI ID for demux)
     always @(posedge clk or negedge rst_n) begin
         if (!rst_n) begin
             read_arb_sel <= 1'b0;
         end else begin
+            // Can only switch when no outstanding address request
             if (!m_axi_arvalid || m_axi_arready) begin
-                // Can switch
                 if (read_arb_sel == 1'b0 && txdma_arvalid && !desc_arvalid)
                     read_arb_sel <= 1'b1;
                 else if (read_arb_sel == 1'b1 && desc_arvalid && !txdma_arvalid)
@@ -569,17 +573,34 @@ module dma_top #(
         end
     end
     
-    // Write arbitration
+    // Write transaction lock: set when AW will be accepted, clear when B completes
+    // CRITICAL: Must lock BEFORE the handshake cycle to prevent arbiter switch
+    always @(posedge clk or negedge rst_n) begin
+        if (!rst_n) begin
+            write_locked <= 1'b0;
+        end else begin
+            if (m_axi_bvalid && m_axi_bready) begin
+                // Write response completed, unlock (can accept new transaction next cycle)
+                write_locked <= 1'b0;
+            end
+        end
+    end
+    
+    // Write arbitration (can only switch when transaction is idle)
     always @(posedge clk or negedge rst_n) begin
         if (!rst_n) begin
             write_arb_sel <= 1'b0;
         end else begin
-            if (!m_axi_awvalid || m_axi_awready) begin
-                if (write_arb_sel == 1'b0 && rxdma_awvalid && !desc_awvalid)
+            // Can only switch when not locked and no pending address
+            if (!write_locked && (!m_axi_awvalid || m_axi_awready)) begin
+                if (write_arb_sel == 1'b0 && rxdma_awvalid && !desc_awvalid) begin
                     write_arb_sel <= 1'b1;
-                else if (write_arb_sel == 1'b1 && desc_awvalid && !rxdma_awvalid)
+                    write_locked  <= 1'b1;
+                end else if (write_arb_sel == 1'b1 && desc_awvalid && !rxdma_awvalid) begin
                     write_arb_sel <= 1'b0;
-                else if (desc_awvalid || rxdma_awvalid) begin
+                    write_locked  <= 1'b1;
+                end else if (desc_awvalid || rxdma_awvalid) begin
+                    // Round robin
                     write_arb_sel <= ~write_arb_sel;
                 end
             end

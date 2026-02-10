@@ -190,7 +190,13 @@ module dma_desc #(
     // Ring Pointer Logic
     //--------------------------------------------------------------------------
     // TX: SW writes head (new descriptors), HW updates tail (consumed)
-    // RX: HW writes head (filled buffers), SW updates tail (available)
+    //     Available count = head - tail
+    // RX: SW writes tail (available buffers), HW updates head (filled buffers)
+    //     Available count = tail - head
+    //
+    // Standard initialization:
+    //   TX: SW sets tx_head_ptr = N (number of prepared descriptors), HW starts with tail=0
+    //   RX: SW sets rx_tail_ptr = N (number of available buffers), HW starts with head=0
     
     wire [15:0] tx_pending_cnt = (tx_head_ptr >= tx_tail_ptr) ?
                                  (tx_head_ptr - tx_tail_ptr) :

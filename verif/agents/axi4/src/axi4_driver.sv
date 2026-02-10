@@ -174,8 +174,6 @@ class axi4_driver #(
 
       // Wait for write data
       vif.slave_driver_cb.wready <= 1'b1;
-      do @(vif.slave_driver_cb);
-      while(vif.slave_driver_cb.wvalid !== 1'b1);
 
       // Collect write data
       item.data = new[item.len + 1];
@@ -197,9 +195,11 @@ class axi4_driver #(
       // Provide write response
       vif.slave_driver_cb.bresp  <= rsp.resp[0];
       vif.slave_driver_cb.bvalid <= 1'b1;
+      vif.slave_driver_cb.bid    <= rsp.id;
       do @(vif.slave_driver_cb);
       while(vif.slave_driver_cb.bready !== 1'b1);
       vif.slave_driver_cb.bvalid <= 1'b0;
+      vif.slave_driver_cb.bid    <= '0;  // Clear ID after response
 
     end
   endtask
@@ -238,6 +238,7 @@ class axi4_driver #(
         vif.slave_driver_cb.rdata  <= rsp.data[i];
         vif.slave_driver_cb.rresp  <= rsp.resp[i];
         vif.slave_driver_cb.rlast  <= (i == item.len) ? 1'b1 : 1'b0;
+        vif.slave_driver_cb.rid    <= rsp.id;
         vif.slave_driver_cb.rvalid <= 1'b1;
         do @(vif.slave_driver_cb);
         while(vif.slave_driver_cb.rready !== 1'b1);

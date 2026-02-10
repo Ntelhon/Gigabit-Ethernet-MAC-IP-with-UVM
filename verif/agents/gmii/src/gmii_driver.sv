@@ -68,6 +68,7 @@ class gmii_driver extends uvm_driver #(gmii_item);
 
       seq_item_port.get_next_item(req);
 
+      `uvm_info("GMII_DRIVER", $sformatf("Driving frame with payload length %0d bytes", req.payload.size()), UVM_MEDIUM)
       drive_frame(req);
 
       // Broadcast frame to analysis port (for scoreboard tracking)

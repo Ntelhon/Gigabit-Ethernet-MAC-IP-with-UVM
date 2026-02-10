@@ -167,6 +167,7 @@ module dma_rx #(
     reg [15:0]              bytes_remaining;    // Bytes left to write for this packet
     
     // Burst calculation temporaries
+    reg [15:0]              latched_packet_len;
     reg [15:0]              max_burst_bytes;
     reg [15:0]              boundary_limit;
     reg [15:0]              buffer_limit;
@@ -216,7 +217,7 @@ module dma_rx #(
             if (fifo_count >= AXI_BYTES)
                 fifo_rd_bytes = AXI_BYTES;
             else
-                fifo_rd_bytes = {{(8-FIFO_COUNT_W){1'b0}}, fifo_count};
+                fifo_rd_bytes = fifo_count[7:0];  // Safe: extract lower 8 bits
             
             // Also limit by remaining bytes to write
             if (bytes_remaining < AXI_BYTES)
@@ -249,21 +250,24 @@ module dma_rx #(
             
             // Read from FIFO (pointer update)
             if (fifo_rd_en) begin
-                fifo_rd_ptr <= fifo_rd_ptr + fifo_rd_bytes[FIFO_ADDR_W-1:0];
+                // Safe cast: fifo_rd_bytes is already limited to AXI_BYTES max
+                fifo_rd_ptr <= fifo_rd_ptr + {{(FIFO_ADDR_W-8){1'b0}}, fifo_rd_bytes};
             end
             
             // Update count (write and read can happen simultaneously)
             case ({fifo_wr_en, fifo_rd_en})
                 2'b10: fifo_count <= fifo_count + 1'b1;
                 2'b01: begin
-                    if (fifo_count >= fifo_rd_bytes)
-                        fifo_count <= fifo_count - fifo_rd_bytes;
+                    // Safe subtraction with proper width extension
+                    if (fifo_count >= {{(FIFO_COUNT_W-8){1'b0}}, fifo_rd_bytes})
+                        fifo_count <= fifo_count - {{(FIFO_COUNT_W-8){1'b0}}, fifo_rd_bytes};
                     else
                         fifo_count <= {FIFO_COUNT_W{1'b0}};
                 end
                 2'b11: begin
-                    if (fifo_count >= fifo_rd_bytes)
-                        fifo_count <= fifo_count + 1'b1 - fifo_rd_bytes;
+                    // Write 1 byte, read fifo_rd_bytes
+                    if (fifo_count >= {{(FIFO_COUNT_W-8){1'b0}}, fifo_rd_bytes})
+                        fifo_count <= fifo_count + 1'b1 - {{(FIFO_COUNT_W-8){1'b0}}, fifo_rd_bytes};
                     else
                         fifo_count <= 1'b1;  // Just the written byte
                 end
@@ -361,6 +365,7 @@ module dma_rx #(
             fifo_limit      <= 16'd0;
             min_bytes       <= 16'd0;
             calculated_len  <= 8'd0;
+            latched_packet_len <= 16'd0;
             
             // Write assembly temps
             assembled_data  <= {AXI_DATA_W{1'b0}};
@@ -385,12 +390,16 @@ module dma_rx #(
             error         <= 1'b0;
             
         end else begin
-            // Default: clear single-cycle signals
+            // Default: clear single-cycle pulses and handshake signals
             if (desc_ready && desc_valid)
                 desc_ready <= 1'b0;
             
             if (m_axi_awvalid && m_axi_awready)
                 m_axi_awvalid <= 1'b0;
+            
+            // Clear wvalid after successful handshake (unless state machine sets it again)
+            if (m_axi_wvalid && m_axi_wready && m_axi_wlast)
+                m_axi_wvalid <= 1'b0;
             
             if (wb_valid && wb_ready)
                 wb_valid <= 1'b0;
@@ -424,11 +433,13 @@ module dma_rx #(
                     if (pkt_complete) begin
                         // Full packet received, start DMA
                         bytes_remaining <= pkt_len;
+                        latched_packet_len <= pkt_len;
                         state <= ST_CALC_BURST;
                         
                     end else if (!fifo_empty && (fifo_count >= AXI_BYTES)) begin
                         // Streaming mode: start writing before packet completes
                         bytes_remaining <= {{(16-FIFO_COUNT_W){1'b0}}, fifo_count};
+                        latched_packet_len <= {{(16-FIFO_COUNT_W){1'b0}}, fifo_count};
                         state <= ST_CALC_BURST;
                     end
                 end
@@ -437,7 +448,7 @@ module dma_rx #(
                 // CALC_BURST: Calculate burst parameters
                 //--------------------------------------------------------------
                 ST_CALC_BURST: begin
-                    if ((bytes_written >= cur_max_len) || (bytes_written >= pkt_len)) begin
+                    if ((bytes_written >= cur_max_len) || (bytes_written >= latched_packet_len)) begin
                         // Done writing this packet
                         state <= ST_WRITEBACK;
                         
@@ -450,8 +461,8 @@ module dma_rx #(
                         max_burst_bytes = MAX_BURST_LEN * AXI_BYTES;
                         
                         // Limit 1: Remaining packet bytes
-                        if (pkt_len - bytes_written < max_burst_bytes)
-                            min_bytes = pkt_len - bytes_written;
+                        if (latched_packet_len - bytes_written < max_burst_bytes)
+                            min_bytes = latched_packet_len - bytes_written;
                         else
                             min_bytes = max_burst_bytes;
                         
@@ -489,6 +500,9 @@ module dma_rx #(
                 // ISSUE_AW: Issue write address
                 //--------------------------------------------------------------
                 ST_ISSUE_AW: begin
+                    // Ensure wvalid is clear before starting new burst
+                    m_axi_wvalid <= 1'b0;
+                    
                     if (!m_axi_awvalid || m_axi_awready) begin
                         m_axi_awvalid <= 1'b1;
                         m_axi_awaddr  <= cur_addr;
@@ -502,7 +516,11 @@ module dma_rx #(
                 // WRITE_DATA: Stream data to AXI
                 //--------------------------------------------------------------
                 ST_WRITE_DATA: begin
-                    if (!m_axi_wvalid || m_axi_wready) begin
+                    // Check if we have data to send and haven't asserted wvalid yet
+                    if (!m_axi_wvalid && !fifo_empty && 
+                        (bytes_written < latched_packet_len) && 
+                        (bytes_written < cur_max_len)) begin
+                        
                         // Assemble data from FIFO
                         assembled_data = {AXI_DATA_W{1'b0}};
                         assembled_strb = {AXI_BYTES{1'b0}};
@@ -512,7 +530,7 @@ module dma_rx #(
                             rd_idx = fifo_rd_ptr + i[FIFO_ADDR_W-1:0];
                             
                             if ((i < fifo_count) && 
-                                (bytes_written + i < pkt_len) &&
+                                (bytes_written + i < latched_packet_len) &&
                                 (bytes_written + i < cur_max_len)) begin
                                 
                                 assembled_data[i*8 +: 8] = fifo_mem[rd_idx];
@@ -521,22 +539,47 @@ module dma_rx #(
                             end
                         end
                         
+                        // Present data on write channel
                         m_axi_wdata  <= assembled_data;
                         m_axi_wstrb  <= assembled_strb;
                         m_axi_wvalid <= 1'b1;
                         m_axi_wlast  <= (burst_beat_cnt == burst_len);
                         
-                        bytes_written <= bytes_written + valid_bytes[7:0];
-                        bytes_remaining <= bytes_remaining - valid_bytes[7:0];
-                        cur_addr <= cur_addr + AXI_BYTES;
+                    end else if (m_axi_wvalid && m_axi_wready) begin
+                        // AXI HANDSHAKE OCCURRED - update all counters and pointers
                         
-                        if (burst_beat_cnt == burst_len) begin
+                        // How many bytes were transferred (from wstrb)
+                        valid_bytes = 8'd0;
+                        for (i = 0; i < AXI_BYTES; i = i + 1) begin
+                            if (m_axi_wstrb[i])
+                                valid_bytes = valid_bytes + 8'd1;
+                        end
+                        
+                        // Update tracking counters only after successful transfer
+                        bytes_written   <= bytes_written + valid_bytes[7:0];
+                        bytes_remaining <= bytes_remaining - valid_bytes[7:0];
+                        cur_addr        <= cur_addr + AXI_BYTES;
+                        
+                        // Check if this was the last beat
+                        if (m_axi_wlast) begin
+                            // Last beat transferred - wait for response
+                            m_axi_wvalid <= 1'b0;
                             m_axi_bready <= 1'b1;
                             state <= ST_WAIT_B;
                         end else begin
+                            // More beats to send - advance counter and prepare next
                             burst_beat_cnt <= burst_beat_cnt + 8'd1;
+                            m_axi_wvalid <= 1'b0;  // Clear to prepare next beat
                         end
+                        
+                    end else if (fifo_empty || 
+                                 (bytes_written >= latched_packet_len) || 
+                                 (bytes_written >= cur_max_len)) begin
+                        // No more data available
+                        m_axi_wvalid <= 1'b0;
+                        state <= ST_WAIT_PKT;
                     end
+                    // else: wvalid=1 but wready=0, wait for slave
                 end
                 
                 //--------------------------------------------------------------
@@ -551,7 +594,7 @@ module dma_rx #(
                             error <= 1'b1;
                             state <= ST_ERROR;
                             
-                        end else if ((bytes_written >= pkt_len) || 
+                        end else if ((bytes_written >= latched_packet_len) || 
                                      (bytes_written >= cur_max_len)) begin
                             // Packet complete
                             state <= ST_WRITEBACK;

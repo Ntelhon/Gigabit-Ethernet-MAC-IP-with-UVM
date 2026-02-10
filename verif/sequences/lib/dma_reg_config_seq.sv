@@ -7,14 +7,18 @@ class dma_reg_config_seq extends uvm_sequence;
   rand bit        enable_tx_dma;
   rand bit        enable_rx_dma;
   rand bit [31:0] tx_desc_addr;
+  rand bit [31:0] tx_tail_ptr;
   rand bit [31:0] rx_desc_addr;
-  
+  rand bit [31:0] rx_tail_ptr;
+
   function new(string name = "dma_reg_config_seq");
     super.new(name);
     enable_tx_dma = 1;
     enable_rx_dma = 1;
     tx_desc_addr = 32'h1000_0000;
+    tx_tail_ptr = 32'd0;  // Start with 0 ready descriptors for TX
     rx_desc_addr = 32'h2000_0000;
+    rx_tail_ptr = 32'd0;  // Start with 0 ready descriptors for RX
   endfunction
 
   task body();
@@ -36,6 +40,12 @@ class dma_reg_config_seq extends uvm_sequence;
     wr_seq = axi_lite_write_seq::type_id::create("wr_seq");
     wr_seq.addr = DMA_RX_DESC_LO_REG;
     wr_seq.data = rx_desc_addr;
+    wr_seq.start(m_sequencer);
+
+    // Set RX Tail pointer to indicate available buffers (kickstart RX DMA)
+    wr_seq = axi_lite_write_seq::type_id::create("wr_seq");
+    wr_seq.addr = DMA_RX_TAIL_PTR_REG;
+    wr_seq.data = rx_tail_ptr;
     wr_seq.start(m_sequencer);
     
     // Enable RX DMA

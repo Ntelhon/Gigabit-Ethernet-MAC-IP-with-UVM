@@ -20,37 +20,329 @@
       </db_ref>
    </db_ref_list>
    <zoom_setting>
-      <ZoomStartTime time="3,079.975 ns"></ZoomStartTime>
-      <ZoomEndTime time="3,469.975 ns"></ZoomEndTime>
-      <Cursor1Time time="3,356.000 ns"></Cursor1Time>
+      <ZoomStartTime time="1,184.415 ns"></ZoomStartTime>
+      <ZoomEndTime time="1,429.108 ns"></ZoomEndTime>
+      <Cursor1Time time="1,285.000 ns"></Cursor1Time>
    </zoom_setting>
    <column_width_setting>
       <NameColumnWidth column_width="185"></NameColumnWidth>
-      <ValueColumnWidth column_width="193"></ValueColumnWidth>
+      <ValueColumnWidth column_width="185"></ValueColumnWidth>
    </column_width_setting>
-   <WVObjectSize size="6" />
-   <wvobject type="array" fp_name="/eth_tb_top/dut/u_mac/u_mac_rx/rx_data">
-      <obj_property name="ElementShortName">rx_data[7:0]</obj_property>
-      <obj_property name="ObjectShortName">rx_data[7:0]</obj_property>
+   <WVObjectSize size="79" />
+   <wvobject type="logic" fp_name="/eth_tb_top/dut/\gen_dma.u_dma /u_dma_rx/clk">
+      <obj_property name="ElementShortName">clk</obj_property>
+      <obj_property name="ObjectShortName">clk</obj_property>
    </wvobject>
-   <wvobject type="logic" fp_name="/eth_tb_top/dut/u_mac/u_mac_rx/rx_data_valid">
-      <obj_property name="ElementShortName">rx_data_valid</obj_property>
-      <obj_property name="ObjectShortName">rx_data_valid</obj_property>
+   <wvobject type="logic" fp_name="/eth_tb_top/dut/\gen_dma.u_dma /u_dma_rx/rst_n">
+      <obj_property name="ElementShortName">rst_n</obj_property>
+      <obj_property name="ObjectShortName">rst_n</obj_property>
    </wvobject>
-   <wvobject type="logic" fp_name="/eth_tb_top/dut/u_mac/u_mac_rx/rx_sof">
-      <obj_property name="ElementShortName">rx_sof</obj_property>
-      <obj_property name="ObjectShortName">rx_sof</obj_property>
+   <wvobject type="logic" fp_name="/eth_tb_top/dut/\gen_dma.u_dma /u_dma_rx/enable">
+      <obj_property name="ElementShortName">enable</obj_property>
+      <obj_property name="ObjectShortName">enable</obj_property>
    </wvobject>
-   <wvobject type="logic" fp_name="/eth_tb_top/dut/u_mac/u_mac_rx/rx_eof">
-      <obj_property name="ElementShortName">rx_eof</obj_property>
-      <obj_property name="ObjectShortName">rx_eof</obj_property>
+   <wvobject type="logic" fp_name="/eth_tb_top/dut/\gen_dma.u_dma /u_dma_rx/soft_reset">
+      <obj_property name="ElementShortName">soft_reset</obj_property>
+      <obj_property name="ObjectShortName">soft_reset</obj_property>
    </wvobject>
-   <wvobject type="logic" fp_name="/eth_tb_top/dut/u_mac/u_mac_rx/rx_frame_good">
-      <obj_property name="ElementShortName">rx_frame_good</obj_property>
-      <obj_property name="ObjectShortName">rx_frame_good</obj_property>
+   <wvobject type="logic" fp_name="/eth_tb_top/dut/\gen_dma.u_dma /u_dma_rx/busy">
+      <obj_property name="ElementShortName">busy</obj_property>
+      <obj_property name="ObjectShortName">busy</obj_property>
    </wvobject>
-   <wvobject type="logic" fp_name="/eth_tb_top/dut/u_mac/u_mac_rx/rx_frame_bad">
-      <obj_property name="ElementShortName">rx_frame_bad</obj_property>
-      <obj_property name="ObjectShortName">rx_frame_bad</obj_property>
+   <wvobject type="logic" fp_name="/eth_tb_top/dut/\gen_dma.u_dma /u_dma_rx/halted">
+      <obj_property name="ElementShortName">halted</obj_property>
+      <obj_property name="ObjectShortName">halted</obj_property>
+   </wvobject>
+   <wvobject type="logic" fp_name="/eth_tb_top/dut/\gen_dma.u_dma /u_dma_rx/error">
+      <obj_property name="ElementShortName">error</obj_property>
+      <obj_property name="ObjectShortName">error</obj_property>
+   </wvobject>
+   <wvobject type="logic" fp_name="/eth_tb_top/dut/\gen_dma.u_dma /u_dma_rx/desc_valid">
+      <obj_property name="ElementShortName">desc_valid</obj_property>
+      <obj_property name="ObjectShortName">desc_valid</obj_property>
+   </wvobject>
+   <wvobject type="logic" fp_name="/eth_tb_top/dut/\gen_dma.u_dma /u_dma_rx/desc_ready">
+      <obj_property name="ElementShortName">desc_ready</obj_property>
+      <obj_property name="ObjectShortName">desc_ready</obj_property>
+   </wvobject>
+   <wvobject type="array" fp_name="/eth_tb_top/dut/\gen_dma.u_dma /u_dma_rx/desc_buf_addr">
+      <obj_property name="ElementShortName">desc_buf_addr[31:0]</obj_property>
+      <obj_property name="ObjectShortName">desc_buf_addr[31:0]</obj_property>
+   </wvobject>
+   <wvobject type="array" fp_name="/eth_tb_top/dut/\gen_dma.u_dma /u_dma_rx/desc_buf_len">
+      <obj_property name="ElementShortName">desc_buf_len[15:0]</obj_property>
+      <obj_property name="ObjectShortName">desc_buf_len[15:0]</obj_property>
+   </wvobject>
+   <wvobject type="array" fp_name="/eth_tb_top/dut/\gen_dma.u_dma /u_dma_rx/desc_ctrl">
+      <obj_property name="ElementShortName">desc_ctrl[31:0]</obj_property>
+      <obj_property name="ObjectShortName">desc_ctrl[31:0]</obj_property>
+   </wvobject>
+   <wvobject type="array" fp_name="/eth_tb_top/dut/\gen_dma.u_dma /u_dma_rx/desc_index">
+      <obj_property name="ElementShortName">desc_index[15:0]</obj_property>
+      <obj_property name="ObjectShortName">desc_index[15:0]</obj_property>
+   </wvobject>
+   <wvobject type="logic" fp_name="/eth_tb_top/dut/\gen_dma.u_dma /u_dma_rx/wb_valid">
+      <obj_property name="ElementShortName">wb_valid</obj_property>
+      <obj_property name="ObjectShortName">wb_valid</obj_property>
+   </wvobject>
+   <wvobject type="logic" fp_name="/eth_tb_top/dut/\gen_dma.u_dma /u_dma_rx/wb_ready">
+      <obj_property name="ElementShortName">wb_ready</obj_property>
+      <obj_property name="ObjectShortName">wb_ready</obj_property>
+   </wvobject>
+   <wvobject type="array" fp_name="/eth_tb_top/dut/\gen_dma.u_dma /u_dma_rx/wb_index">
+      <obj_property name="ElementShortName">wb_index[15:0]</obj_property>
+      <obj_property name="ObjectShortName">wb_index[15:0]</obj_property>
+   </wvobject>
+   <wvobject type="array" fp_name="/eth_tb_top/dut/\gen_dma.u_dma /u_dma_rx/wb_length">
+      <obj_property name="ElementShortName">wb_length[15:0]</obj_property>
+      <obj_property name="ObjectShortName">wb_length[15:0]</obj_property>
+   </wvobject>
+   <wvobject type="array" fp_name="/eth_tb_top/dut/\gen_dma.u_dma /u_dma_rx/wb_status">
+      <obj_property name="ElementShortName">wb_status[31:0]</obj_property>
+      <obj_property name="ObjectShortName">wb_status[31:0]</obj_property>
+   </wvobject>
+   <wvobject type="logic" fp_name="/eth_tb_top/dut/\gen_dma.u_dma /u_dma_rx/m_axi_awvalid">
+      <obj_property name="ElementShortName">m_axi_awvalid</obj_property>
+      <obj_property name="ObjectShortName">m_axi_awvalid</obj_property>
+   </wvobject>
+   <wvobject type="logic" fp_name="/eth_tb_top/dut/\gen_dma.u_dma /u_dma_rx/m_axi_awready">
+      <obj_property name="ElementShortName">m_axi_awready</obj_property>
+      <obj_property name="ObjectShortName">m_axi_awready</obj_property>
+   </wvobject>
+   <wvobject type="array" fp_name="/eth_tb_top/dut/\gen_dma.u_dma /u_dma_rx/m_axi_awaddr">
+      <obj_property name="ElementShortName">m_axi_awaddr[31:0]</obj_property>
+      <obj_property name="ObjectShortName">m_axi_awaddr[31:0]</obj_property>
+   </wvobject>
+   <wvobject type="array" fp_name="/eth_tb_top/dut/\gen_dma.u_dma /u_dma_rx/m_axi_awlen">
+      <obj_property name="ElementShortName">m_axi_awlen[7:0]</obj_property>
+      <obj_property name="ObjectShortName">m_axi_awlen[7:0]</obj_property>
+   </wvobject>
+   <wvobject type="array" fp_name="/eth_tb_top/dut/\gen_dma.u_dma /u_dma_rx/m_axi_awsize">
+      <obj_property name="ElementShortName">m_axi_awsize[2:0]</obj_property>
+      <obj_property name="ObjectShortName">m_axi_awsize[2:0]</obj_property>
+   </wvobject>
+   <wvobject type="array" fp_name="/eth_tb_top/dut/\gen_dma.u_dma /u_dma_rx/m_axi_awburst">
+      <obj_property name="ElementShortName">m_axi_awburst[1:0]</obj_property>
+      <obj_property name="ObjectShortName">m_axi_awburst[1:0]</obj_property>
+   </wvobject>
+   <wvobject type="array" fp_name="/eth_tb_top/dut/\gen_dma.u_dma /u_dma_rx/m_axi_awid">
+      <obj_property name="ElementShortName">m_axi_awid[3:0]</obj_property>
+      <obj_property name="ObjectShortName">m_axi_awid[3:0]</obj_property>
+   </wvobject>
+   <wvobject type="logic" fp_name="/eth_tb_top/dut/\gen_dma.u_dma /u_dma_rx/m_axi_wvalid">
+      <obj_property name="ElementShortName">m_axi_wvalid</obj_property>
+      <obj_property name="ObjectShortName">m_axi_wvalid</obj_property>
+   </wvobject>
+   <wvobject type="logic" fp_name="/eth_tb_top/dut/\gen_dma.u_dma /u_dma_rx/m_axi_wready">
+      <obj_property name="ElementShortName">m_axi_wready</obj_property>
+      <obj_property name="ObjectShortName">m_axi_wready</obj_property>
+   </wvobject>
+   <wvobject type="logic" fp_name="/eth_tb_top/dut/\gen_dma.u_dma /write_arb_sel">
+      <obj_property name="ElementShortName">write_arb_sel</obj_property>
+      <obj_property name="ObjectShortName">write_arb_sel</obj_property>
+   </wvobject>
+   <wvobject type="logic" fp_name="/eth_tb_top/dut/\gen_dma.u_dma /write_locked">
+      <obj_property name="ElementShortName">write_locked</obj_property>
+      <obj_property name="ObjectShortName">write_locked</obj_property>
+   </wvobject>
+   <wvobject type="array" fp_name="/eth_tb_top/dut/\gen_dma.u_dma /u_dma_rx/m_axi_wdata">
+      <obj_property name="ElementShortName">m_axi_wdata[63:0]</obj_property>
+      <obj_property name="ObjectShortName">m_axi_wdata[63:0]</obj_property>
+   </wvobject>
+   <wvobject type="array" fp_name="/eth_tb_top/dut/\gen_dma.u_dma /u_dma_rx/m_axi_wstrb">
+      <obj_property name="ElementShortName">m_axi_wstrb[7:0]</obj_property>
+      <obj_property name="ObjectShortName">m_axi_wstrb[7:0]</obj_property>
+   </wvobject>
+   <wvobject type="logic" fp_name="/eth_tb_top/dut/\gen_dma.u_dma /u_dma_rx/m_axi_wlast">
+      <obj_property name="ElementShortName">m_axi_wlast</obj_property>
+      <obj_property name="ObjectShortName">m_axi_wlast</obj_property>
+   </wvobject>
+   <wvobject type="logic" fp_name="/eth_tb_top/dut/\gen_dma.u_dma /u_dma_rx/m_axi_bvalid">
+      <obj_property name="ElementShortName">m_axi_bvalid</obj_property>
+      <obj_property name="ObjectShortName">m_axi_bvalid</obj_property>
+   </wvobject>
+   <wvobject type="logic" fp_name="/eth_tb_top/dut/\gen_dma.u_dma /u_dma_rx/m_axi_bready">
+      <obj_property name="ElementShortName">m_axi_bready</obj_property>
+      <obj_property name="ObjectShortName">m_axi_bready</obj_property>
+   </wvobject>
+   <wvobject type="array" fp_name="/eth_tb_top/dut/\gen_dma.u_dma /u_dma_rx/m_axi_bresp">
+      <obj_property name="ElementShortName">m_axi_bresp[1:0]</obj_property>
+      <obj_property name="ObjectShortName">m_axi_bresp[1:0]</obj_property>
+   </wvobject>
+   <wvobject type="array" fp_name="/eth_tb_top/dut/\gen_dma.u_dma /u_dma_rx/m_axi_bid">
+      <obj_property name="ElementShortName">m_axi_bid[3:0]</obj_property>
+      <obj_property name="ObjectShortName">m_axi_bid[3:0]</obj_property>
+   </wvobject>
+   <wvobject type="logic" fp_name="/eth_tb_top/dut/\gen_dma.u_dma /u_dma_rx/s_axis_tvalid">
+      <obj_property name="ElementShortName">s_axis_tvalid</obj_property>
+      <obj_property name="ObjectShortName">s_axis_tvalid</obj_property>
+   </wvobject>
+   <wvobject type="logic" fp_name="/eth_tb_top/dut/\gen_dma.u_dma /u_dma_rx/s_axis_tready">
+      <obj_property name="ElementShortName">s_axis_tready</obj_property>
+      <obj_property name="ObjectShortName">s_axis_tready</obj_property>
+   </wvobject>
+   <wvobject type="array" fp_name="/eth_tb_top/dut/\gen_dma.u_dma /u_dma_rx/s_axis_tdata">
+      <obj_property name="ElementShortName">s_axis_tdata[7:0]</obj_property>
+      <obj_property name="ObjectShortName">s_axis_tdata[7:0]</obj_property>
+   </wvobject>
+   <wvobject type="logic" fp_name="/eth_tb_top/dut/\gen_dma.u_dma /u_dma_rx/s_axis_tlast">
+      <obj_property name="ElementShortName">s_axis_tlast</obj_property>
+      <obj_property name="ObjectShortName">s_axis_tlast</obj_property>
+   </wvobject>
+   <wvobject type="logic" fp_name="/eth_tb_top/dut/\gen_dma.u_dma /u_dma_rx/s_axis_tuser">
+      <obj_property name="ElementShortName">s_axis_tuser</obj_property>
+      <obj_property name="ObjectShortName">s_axis_tuser</obj_property>
+   </wvobject>
+   <wvobject type="array" fp_name="/eth_tb_top/dut/\gen_dma.u_dma /u_dma_rx/rx_pkt_cnt">
+      <obj_property name="ElementShortName">rx_pkt_cnt[31:0]</obj_property>
+      <obj_property name="ObjectShortName">rx_pkt_cnt[31:0]</obj_property>
+   </wvobject>
+   <wvobject type="array" fp_name="/eth_tb_top/dut/\gen_dma.u_dma /u_dma_rx/rx_byte_cnt">
+      <obj_property name="ElementShortName">rx_byte_cnt[31:0]</obj_property>
+      <obj_property name="ObjectShortName">rx_byte_cnt[31:0]</obj_property>
+   </wvobject>
+   <wvobject type="array" fp_name="/eth_tb_top/dut/\gen_dma.u_dma /u_dma_rx/rx_drop_cnt">
+      <obj_property name="ElementShortName">rx_drop_cnt[31:0]</obj_property>
+      <obj_property name="ObjectShortName">rx_drop_cnt[31:0]</obj_property>
+   </wvobject>
+   <wvobject type="array" fp_name="/eth_tb_top/dut/\gen_dma.u_dma /u_dma_rx/state">
+      <obj_property name="ElementShortName">state[3:0]</obj_property>
+      <obj_property name="ObjectShortName">state[3:0]</obj_property>
+   </wvobject>
+   <wvobject type="array" fp_name="/eth_tb_top/dut/\gen_dma.u_dma /u_dma_rx/next_state">
+      <obj_property name="ElementShortName">next_state[3:0]</obj_property>
+      <obj_property name="ObjectShortName">next_state[3:0]</obj_property>
+   </wvobject>
+   <wvobject type="array" fp_name="/eth_tb_top/dut/\gen_dma.u_dma /u_dma_rx/cur_addr">
+      <obj_property name="ElementShortName">cur_addr[31:0]</obj_property>
+      <obj_property name="ObjectShortName">cur_addr[31:0]</obj_property>
+   </wvobject>
+   <wvobject type="array" fp_name="/eth_tb_top/dut/\gen_dma.u_dma /u_dma_rx/cur_max_len">
+      <obj_property name="ElementShortName">cur_max_len[15:0]</obj_property>
+      <obj_property name="ObjectShortName">cur_max_len[15:0]</obj_property>
+   </wvobject>
+   <wvobject type="array" fp_name="/eth_tb_top/dut/\gen_dma.u_dma /u_dma_rx/cur_index">
+      <obj_property name="ElementShortName">cur_index[15:0]</obj_property>
+      <obj_property name="ObjectShortName">cur_index[15:0]</obj_property>
+   </wvobject>
+   <wvobject type="array" fp_name="/eth_tb_top/dut/\gen_dma.u_dma /u_dma_rx/cur_ctrl">
+      <obj_property name="ElementShortName">cur_ctrl[31:0]</obj_property>
+      <obj_property name="ObjectShortName">cur_ctrl[31:0]</obj_property>
+   </wvobject>
+   <wvobject type="array" fp_name="/eth_tb_top/dut/\gen_dma.u_dma /u_dma_rx/bytes_written">
+      <obj_property name="ElementShortName">bytes_written[15:0]</obj_property>
+      <obj_property name="ObjectShortName">bytes_written[15:0]</obj_property>
+   </wvobject>
+   <wvobject type="array" fp_name="/eth_tb_top/dut/\gen_dma.u_dma /u_dma_rx/pkt_len">
+      <obj_property name="ElementShortName">pkt_len[15:0]</obj_property>
+      <obj_property name="ObjectShortName">pkt_len[15:0]</obj_property>
+   </wvobject>
+   <wvobject type="logic" fp_name="/eth_tb_top/dut/\gen_dma.u_dma /u_dma_rx/pkt_error">
+      <obj_property name="ElementShortName">pkt_error</obj_property>
+      <obj_property name="ObjectShortName">pkt_error</obj_property>
+   </wvobject>
+   <wvobject type="logic" fp_name="/eth_tb_top/dut/\gen_dma.u_dma /u_dma_rx/pkt_complete">
+      <obj_property name="ElementShortName">pkt_complete</obj_property>
+      <obj_property name="ObjectShortName">pkt_complete</obj_property>
+   </wvobject>
+   <wvobject type="array" fp_name="/eth_tb_top/dut/\gen_dma.u_dma /u_dma_rx/fifo_mem">
+      <obj_property name="ElementShortName">fifo_mem[0:4095][7:0]</obj_property>
+      <obj_property name="ObjectShortName">fifo_mem[0:4095][7:0]</obj_property>
+   </wvobject>
+   <wvobject type="array" fp_name="/eth_tb_top/dut/\gen_dma.u_dma /u_dma_rx/fifo_wr_ptr">
+      <obj_property name="ElementShortName">fifo_wr_ptr[11:0]</obj_property>
+      <obj_property name="ObjectShortName">fifo_wr_ptr[11:0]</obj_property>
+   </wvobject>
+   <wvobject type="array" fp_name="/eth_tb_top/dut/\gen_dma.u_dma /u_dma_rx/fifo_rd_ptr">
+      <obj_property name="ElementShortName">fifo_rd_ptr[11:0]</obj_property>
+      <obj_property name="ObjectShortName">fifo_rd_ptr[11:0]</obj_property>
+   </wvobject>
+   <wvobject type="array" fp_name="/eth_tb_top/dut/\gen_dma.u_dma /u_dma_rx/fifo_count">
+      <obj_property name="ElementShortName">fifo_count[12:0]</obj_property>
+      <obj_property name="ObjectShortName">fifo_count[12:0]</obj_property>
+   </wvobject>
+   <wvobject type="logic" fp_name="/eth_tb_top/dut/\gen_dma.u_dma /u_dma_rx/fifo_wr_en">
+      <obj_property name="ElementShortName">fifo_wr_en</obj_property>
+      <obj_property name="ObjectShortName">fifo_wr_en</obj_property>
+   </wvobject>
+   <wvobject type="logic" fp_name="/eth_tb_top/dut/\gen_dma.u_dma /u_dma_rx/fifo_rd_en">
+      <obj_property name="ElementShortName">fifo_rd_en</obj_property>
+      <obj_property name="ObjectShortName">fifo_rd_en</obj_property>
+   </wvobject>
+   <wvobject type="array" fp_name="/eth_tb_top/dut/\gen_dma.u_dma /u_dma_rx/fifo_wr_data">
+      <obj_property name="ElementShortName">fifo_wr_data[7:0]</obj_property>
+      <obj_property name="ObjectShortName">fifo_wr_data[7:0]</obj_property>
+   </wvobject>
+   <wvobject type="array" fp_name="/eth_tb_top/dut/\gen_dma.u_dma /u_dma_rx/fifo_rd_bytes">
+      <obj_property name="ElementShortName">fifo_rd_bytes[7:0]</obj_property>
+      <obj_property name="ObjectShortName">fifo_rd_bytes[7:0]</obj_property>
+   </wvobject>
+   <wvobject type="logic" fp_name="/eth_tb_top/dut/\gen_dma.u_dma /u_dma_rx/fifo_empty">
+      <obj_property name="ElementShortName">fifo_empty</obj_property>
+      <obj_property name="ObjectShortName">fifo_empty</obj_property>
+   </wvobject>
+   <wvobject type="logic" fp_name="/eth_tb_top/dut/\gen_dma.u_dma /u_dma_rx/fifo_afull">
+      <obj_property name="ElementShortName">fifo_afull</obj_property>
+      <obj_property name="ObjectShortName">fifo_afull</obj_property>
+   </wvobject>
+   <wvobject type="array" fp_name="/eth_tb_top/dut/\gen_dma.u_dma /u_dma_rx/burst_len">
+      <obj_property name="ElementShortName">burst_len[7:0]</obj_property>
+      <obj_property name="ObjectShortName">burst_len[7:0]</obj_property>
+   </wvobject>
+   <wvobject type="array" fp_name="/eth_tb_top/dut/\gen_dma.u_dma /u_dma_rx/burst_beat_cnt">
+      <obj_property name="ElementShortName">burst_beat_cnt[7:0]</obj_property>
+      <obj_property name="ObjectShortName">burst_beat_cnt[7:0]</obj_property>
+   </wvobject>
+   <wvobject type="array" fp_name="/eth_tb_top/dut/\gen_dma.u_dma /u_dma_rx/burst_bytes_total">
+      <obj_property name="ElementShortName">burst_bytes_total[15:0]</obj_property>
+      <obj_property name="ObjectShortName">burst_bytes_total[15:0]</obj_property>
+   </wvobject>
+   <wvobject type="array" fp_name="/eth_tb_top/dut/\gen_dma.u_dma /u_dma_rx/bytes_remaining">
+      <obj_property name="ElementShortName">bytes_remaining[15:0]</obj_property>
+      <obj_property name="ObjectShortName">bytes_remaining[15:0]</obj_property>
+   </wvobject>
+   <wvobject type="array" fp_name="/eth_tb_top/dut/\gen_dma.u_dma /u_dma_rx/max_burst_bytes">
+      <obj_property name="ElementShortName">max_burst_bytes[15:0]</obj_property>
+      <obj_property name="ObjectShortName">max_burst_bytes[15:0]</obj_property>
+   </wvobject>
+   <wvobject type="array" fp_name="/eth_tb_top/dut/\gen_dma.u_dma /u_dma_rx/boundary_limit">
+      <obj_property name="ElementShortName">boundary_limit[15:0]</obj_property>
+      <obj_property name="ObjectShortName">boundary_limit[15:0]</obj_property>
+   </wvobject>
+   <wvobject type="array" fp_name="/eth_tb_top/dut/\gen_dma.u_dma /u_dma_rx/buffer_limit">
+      <obj_property name="ElementShortName">buffer_limit[15:0]</obj_property>
+      <obj_property name="ObjectShortName">buffer_limit[15:0]</obj_property>
+   </wvobject>
+   <wvobject type="array" fp_name="/eth_tb_top/dut/\gen_dma.u_dma /u_dma_rx/fifo_limit">
+      <obj_property name="ElementShortName">fifo_limit[15:0]</obj_property>
+      <obj_property name="ObjectShortName">fifo_limit[15:0]</obj_property>
+   </wvobject>
+   <wvobject type="array" fp_name="/eth_tb_top/dut/\gen_dma.u_dma /u_dma_rx/min_bytes">
+      <obj_property name="ElementShortName">min_bytes[15:0]</obj_property>
+      <obj_property name="ObjectShortName">min_bytes[15:0]</obj_property>
+   </wvobject>
+   <wvobject type="array" fp_name="/eth_tb_top/dut/\gen_dma.u_dma /u_dma_rx/calculated_len">
+      <obj_property name="ElementShortName">calculated_len[7:0]</obj_property>
+      <obj_property name="ObjectShortName">calculated_len[7:0]</obj_property>
+   </wvobject>
+   <wvobject type="array" fp_name="/eth_tb_top/dut/\gen_dma.u_dma /u_dma_rx/assembled_data">
+      <obj_property name="ElementShortName">assembled_data[63:0]</obj_property>
+      <obj_property name="ObjectShortName">assembled_data[63:0]</obj_property>
+   </wvobject>
+   <wvobject type="array" fp_name="/eth_tb_top/dut/\gen_dma.u_dma /u_dma_rx/assembled_strb">
+      <obj_property name="ElementShortName">assembled_strb[7:0]</obj_property>
+      <obj_property name="ObjectShortName">assembled_strb[7:0]</obj_property>
+   </wvobject>
+   <wvobject type="array" fp_name="/eth_tb_top/dut/\gen_dma.u_dma /u_dma_rx/rd_idx">
+      <obj_property name="ElementShortName">rd_idx[11:0]</obj_property>
+      <obj_property name="ObjectShortName">rd_idx[11:0]</obj_property>
+   </wvobject>
+   <wvobject type="array" fp_name="/eth_tb_top/dut/\gen_dma.u_dma /u_dma_rx/valid_bytes">
+      <obj_property name="ElementShortName">valid_bytes[7:0]</obj_property>
+      <obj_property name="ObjectShortName">valid_bytes[7:0]</obj_property>
+   </wvobject>
+   <wvobject type="array" fp_name="/eth_tb_top/dut/\gen_dma.u_dma /u_dma_rx/i">
+      <obj_property name="ElementShortName">i[31:0]</obj_property>
+      <obj_property name="ObjectShortName">i[31:0]</obj_property>
    </wvobject>
 </wave_config>

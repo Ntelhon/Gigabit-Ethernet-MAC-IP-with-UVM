@@ -89,6 +89,9 @@ simulation/
 .vscode/
 *.code-workspace
 
+# Github
+.github/
+
 # Vim
 *.swp
 *.swo
