@@ -129,7 +129,7 @@ module mac_tx #(
     
     // Calculate if padding is needed (frame must be >= 64 bytes including FCS)
     // Data + FCS >= 64, so Data >= 60 bytes
-    assign need_padding = (frame_byte_cnt < (MIN_FRAME_SIZE - FCS_LEN));
+    assign need_padding = ((frame_byte_cnt + 1'b1) < (MIN_FRAME_SIZE - FCS_LEN));
     assign pad_bytes_needed = (MIN_FRAME_SIZE - FCS_LEN) - frame_byte_cnt;
 
     //==========================================================================

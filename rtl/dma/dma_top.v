@@ -573,24 +573,23 @@ module dma_top #(
         end
     end
     
-    // Write transaction lock: set when AW will be accepted, clear when B completes
-    // CRITICAL: Must lock BEFORE the handshake cycle to prevent arbiter switch
+    // Write transaction lock + write arbitration selection.
+    // NOTE: These were previously two separate always blocks that both drove
+    // write_locked (one cleared it on B completion, the other set it on a new
+    // grant) -- a multi-driver conflict. Merged into a single block so
+    // write_locked has exactly one driver. Clear-on-completion is evaluated
+    // first, so a same-cycle new grant (which re-asserts the lock) still wins,
+    // preserving the original "lock BEFORE the handshake cycle" intent.
     always @(posedge clk or negedge rst_n) begin
         if (!rst_n) begin
-            write_locked <= 1'b0;
+            write_arb_sel <= 1'b0;
+            write_locked  <= 1'b0;
         end else begin
             if (m_axi_bvalid && m_axi_bready) begin
                 // Write response completed, unlock (can accept new transaction next cycle)
                 write_locked <= 1'b0;
             end
-        end
-    end
-    
-    // Write arbitration (can only switch when transaction is idle)
-    always @(posedge clk or negedge rst_n) begin
-        if (!rst_n) begin
-            write_arb_sel <= 1'b0;
-        end else begin
+
             // Can only switch when not locked and no pending address
             if (!write_locked && (!m_axi_awvalid || m_axi_awready)) begin
                 if (write_arb_sel == 1'b0 && rxdma_awvalid && !desc_awvalid) begin

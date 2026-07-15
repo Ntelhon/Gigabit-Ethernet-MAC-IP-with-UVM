@@ -365,11 +365,14 @@ module mac_rx #(
             rx_sof_latched          <= 1'b0;
             rx_eof                  <= 1'b0;
         end else begin
-            // Default: no data
-            rx_data       <= 8'h00;
-            rx_data_valid <= 1'b0;
-            rx_sof        <= 1'b0;
-            rx_eof        <= 1'b0;
+            // Default: clear the single-cycle EOF pulse.
+            // NOTE: rx_data / rx_data_valid / rx_sof are driven exclusively by
+            // the "Latch Outputs" block below (this block previously also
+            // "defaulted" them, creating multiple drivers on the same regs).
+            // This block owns only the *_latched pipeline signals and rx_eof.
+            // The *_latched signals intentionally HOLD outside ST_DATA, exactly
+            // as before.
+            rx_eof <= 1'b0;
 
             case (state)
                 ST_DATA: begin

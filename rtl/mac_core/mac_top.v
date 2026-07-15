@@ -49,8 +49,8 @@ module mac_top #(
     parameter AXI_DATA_WIDTH = 32,
     
     // FIFO Parameters
-    parameter TX_FIFO_DEPTH  = 4,       // TX FIFO address width (2^4 = 16 entries)
-    parameter RX_FIFO_DEPTH  = 4,       // RX FIFO address width (2^4 = 16 entries)
+    parameter TX_FIFO_DEPTH  = 2048,
+    parameter RX_FIFO_DEPTH  = 2048,
     
     // Frame Parameters
     parameter MIN_FRAME_SIZE = 64,
@@ -374,8 +374,24 @@ module mac_top #(
     //==========================================================================
     // RX FIFO Write Side (RX Clock Domain)
     //==========================================================================
-    assign rx_fifo_din   = {rx_frame_bad, rx_frame_good, rx_sof, rx_eof, rx_data};
-    assign rx_fifo_wr_en = rx_data_valid && !rx_fifo_full;
+    wire rx_fifo_almost_full;
+    reg  rx_fifo_overrun_sticky;   // latched when a mid-frame byte is dropped
+    
+    always @(posedge rx_clk) begin
+        if (!rx_rst_n) begin
+            rx_fifo_overrun_sticky <= 1'b0;
+        end else if (rx_data_valid && rx_sof) begin
+            rx_fifo_overrun_sticky <= 1'b0;
+        end else if (rx_data_valid && !rx_eof && rx_fifo_almost_full) begin
+            rx_fifo_overrun_sticky <= 1'b1;
+        end
+    end
+    
+    assign rx_fifo_din   = {rx_frame_bad | rx_fifo_overrun_sticky, rx_frame_good, rx_sof, rx_eof, rx_data};
+    // Preemptively drop non-EOF bytes once almost_full to reserve headroom for the
+    // EOF beat, so tlast/EOF is (almost) always delivered and downstream framing
+    // never desyncs; the frame is marked bad via the sticky bit above.
+    assign rx_fifo_wr_en = rx_data_valid && !rx_fifo_full && (rx_eof || !rx_fifo_almost_full);
 
     //==========================================================================
     // RX FIFO Read Side (System Clock Domain)
@@ -399,8 +415,99 @@ module mac_top #(
     //==========================================================================
     // For Phase 0, direct connection (assuming synchronized resets)
     // Production should add proper pulse synchronizers
-    assign int_tx_complete = tx_done;  // From GTX domain
-    // int_rx_received, int_rx_crc_err, int_rx_runt from RX domain via mac_rx
+    // Toggle-based pulse synchronizers (gtx_clk / rx_clk -> sys_clk)
+    reg        tx_done_toggle_gtx;
+    reg  [2:0] tx_done_sync_sys;
+    reg        rx_received_toggle_rxclk, rx_crc_err_toggle_rxclk, rx_runt_toggle_rxclk;
+    reg  [2:0] rx_received_sync_sys, rx_crc_err_sync_sys, rx_runt_sync_sys;
+    
+    always @(posedge gtx_clk) begin
+        if (!gtx_rst_n) tx_done_toggle_gtx <= 1'b0;
+        else if (tx_done) tx_done_toggle_gtx <= ~tx_done_toggle_gtx;
+    end
+    
+    always @(posedge rx_clk) begin
+        if (!rx_rst_n) begin
+            rx_received_toggle_rxclk <= 1'b0;
+            rx_crc_err_toggle_rxclk  <= 1'b0;
+            rx_runt_toggle_rxclk     <= 1'b0;
+        end else begin
+            if (int_rx_received) rx_received_toggle_rxclk <= ~rx_received_toggle_rxclk;
+            if (int_rx_crc_err)  rx_crc_err_toggle_rxclk  <= ~rx_crc_err_toggle_rxclk;
+            if (int_rx_runt)     rx_runt_toggle_rxclk     <= ~rx_runt_toggle_rxclk;
+        end
+    end
+    
+    always @(posedge sys_clk) begin
+        if (!sys_rst_n) begin
+            tx_done_sync_sys <= 3'b0; rx_received_sync_sys <= 3'b0;
+            rx_crc_err_sync_sys <= 3'b0; rx_runt_sync_sys <= 3'b0;
+        end else begin
+            tx_done_sync_sys     <= {tx_done_sync_sys[1:0],     tx_done_toggle_gtx};
+            rx_received_sync_sys <= {rx_received_sync_sys[1:0], rx_received_toggle_rxclk};
+            rx_crc_err_sync_sys  <= {rx_crc_err_sync_sys[1:0],  rx_crc_err_toggle_rxclk};
+            rx_runt_sync_sys     <= {rx_runt_sync_sys[1:0],     rx_runt_toggle_rxclk};
+        end
+    end
+    
+    wire int_tx_complete_sys = tx_done_sync_sys[2]     ^ tx_done_sync_sys[1];
+    wire int_rx_received_sys = rx_received_sync_sys[2] ^ rx_received_sync_sys[1];
+    wire int_rx_crc_err_sys  = rx_crc_err_sync_sys[2]  ^ rx_crc_err_sync_sys[1];
+    wire int_rx_runt_sys     = rx_runt_sync_sys[2]     ^ rx_runt_sync_sys[1];
+    
+    // Level-status 2-FF synchronizers
+    reg [1:0] tx_active_sync_sys, rx_active_sync_sys;
+    always @(posedge sys_clk) begin
+        if (!sys_rst_n) begin
+            tx_active_sync_sys <= 2'b0; rx_active_sync_sys <= 2'b0;
+        end else begin
+            tx_active_sync_sys <= {tx_active_sync_sys[0], tx_active};
+            rx_active_sync_sys <= {rx_active_sync_sys[0], rx_active_int};
+        end
+    end
+    
+    // Gray-coded counter CDC (gtx_clk/rx_clk -> sys_clk)
+    function [31:0] bin2gray32; input [31:0] bin; begin bin2gray32 = bin ^ (bin >> 1); end endfunction
+    function [31:0] gray2bin32;
+        input [31:0] gray; integer i;
+        begin
+            gray2bin32[31] = gray[31];
+            for (i = 30; i >= 0; i = i - 1) gray2bin32[i] = gray2bin32[i+1] ^ gray[i];
+        end
+    endfunction
+    
+    reg  [31:0] tx_frame_cnt_gray_gtx, rx_frame_cnt_gray_rxclk, rx_err_cnt_gray_rxclk;
+    reg  [31:0] tx_frame_cnt_gray_sync1, tx_frame_cnt_gray_sync2;
+    reg  [31:0] rx_frame_cnt_gray_sync1, rx_frame_cnt_gray_sync2;
+    reg  [31:0] rx_err_cnt_gray_sync1,   rx_err_cnt_gray_sync2;
+    
+    always @(posedge gtx_clk) begin
+        if (!gtx_rst_n) tx_frame_cnt_gray_gtx <= 32'b0;
+        else            tx_frame_cnt_gray_gtx <= bin2gray32(tx_frame_cnt);
+    end
+    always @(posedge rx_clk) begin
+        if (!rx_rst_n) begin
+            rx_frame_cnt_gray_rxclk <= 32'b0; rx_err_cnt_gray_rxclk <= 32'b0;
+        end else begin
+            rx_frame_cnt_gray_rxclk <= bin2gray32(rx_frame_cnt);
+            rx_err_cnt_gray_rxclk   <= bin2gray32(rx_err_cnt);
+        end
+    end
+    always @(posedge sys_clk) begin
+        if (!sys_rst_n) begin
+            tx_frame_cnt_gray_sync1<=0; tx_frame_cnt_gray_sync2<=0;
+            rx_frame_cnt_gray_sync1<=0; rx_frame_cnt_gray_sync2<=0;
+            rx_err_cnt_gray_sync1<=0;   rx_err_cnt_gray_sync2<=0;
+        end else begin
+            tx_frame_cnt_gray_sync1 <= tx_frame_cnt_gray_gtx;    tx_frame_cnt_gray_sync2 <= tx_frame_cnt_gray_sync1;
+            rx_frame_cnt_gray_sync1 <= rx_frame_cnt_gray_rxclk;  rx_frame_cnt_gray_sync2 <= rx_frame_cnt_gray_sync1;
+            rx_err_cnt_gray_sync1   <= rx_err_cnt_gray_rxclk;    rx_err_cnt_gray_sync2   <= rx_err_cnt_gray_sync1;
+        end
+    end
+    
+    wire [31:0] tx_frame_cnt_sys = gray2bin32(tx_frame_cnt_gray_sync2);
+    wire [31:0] rx_frame_cnt_sys = gray2bin32(rx_frame_cnt_gray_sync2);
+    wire [31:0] rx_err_cnt_sys   = gray2bin32(rx_err_cnt_gray_sync2);
 
     //==========================================================================
     // Module Instantiations
@@ -442,17 +549,17 @@ module mac_top #(
         .int_mask       (int_mask),
 
         // Status inputs
-        .tx_active      (tx_active),
-        .rx_active      (rx_active),
-        .tx_frame_cnt   (tx_frame_cnt),
-        .rx_frame_cnt   (rx_frame_cnt),
-        .rx_err_cnt     (rx_err_cnt),
+        .tx_active      (tx_active_sync_sys[1]),
+        .rx_active      (rx_active_sync_sys[1]),
+        .tx_frame_cnt   (tx_frame_cnt_sys),
+        .rx_frame_cnt   (rx_frame_cnt_sys),
+        .rx_err_cnt     (rx_err_cnt_sys),
 
         // Interrupt inputs
-        .int_tx_complete(int_tx_complete),
-        .int_rx_received(int_rx_received),
-        .int_rx_crc_err (int_rx_crc_err),
-        .int_rx_runt    (int_rx_runt),
+        .int_tx_complete(int_tx_complete_sys),
+        .int_rx_received(int_rx_received_sys),
+        .int_rx_crc_err (int_rx_crc_err_sys),
+        .int_rx_runt    (int_rx_runt_sys),
 
         // Interrupt output
         .irq            (irq)
@@ -463,7 +570,7 @@ module mac_top #(
     //--------------------------------------------------------------------------
     mac_cdc_fifo #(
         .DATA_WIDTH     (10),           // {sof, eof, data[7:0]}
-        .ADDR_WIDTH     (TX_FIFO_DEPTH)
+        .ADDR_WIDTH     ($clog2(TX_FIFO_DEPTH))
     ) u_tx_fifo (
         // Write side (System clock)
         .wr_clk         (sys_clk),
@@ -471,7 +578,7 @@ module mac_top #(
         .wr_en          (tx_fifo_wr_en),
         .wr_data        (tx_fifo_din),
         .wr_full        (tx_fifo_full),
-        .wr_almost_full (),             // Not used
+        .wr_almost_full (rx_fifo_almost_full),             // Not used
 
         // Read side (GTX clock)
         .rd_clk         (gtx_clk),
@@ -632,7 +739,7 @@ module mac_top #(
     //--------------------------------------------------------------------------
     mac_cdc_fifo #(
         .DATA_WIDTH     (12),           // {frame_bad, frame_good, sof, eof, data[7:0]}
-        .ADDR_WIDTH     (RX_FIFO_DEPTH)
+        .ADDR_WIDTH     ($clog2(RX_FIFO_DEPTH))
     ) u_rx_fifo (
         // Write side (RX clock)
         .wr_clk         (rx_clk),
@@ -650,5 +757,12 @@ module mac_top #(
         .rd_empty       (rx_fifo_empty),
         .rd_almost_empty()              // Not used
     );
+
+    initial begin
+        if (TX_FIFO_DEPTH < MAX_FRAME_SIZE)
+            $error("mac_top: TX_FIFO_DEPTH=%0d must be >= MAX_FRAME_SIZE=%0d for store-and-forward", TX_FIFO_DEPTH, MAX_FRAME_SIZE);
+        if (RX_FIFO_DEPTH < MAX_FRAME_SIZE)
+            $error("mac_top: RX_FIFO_DEPTH=%0d must be >= MAX_FRAME_SIZE=%0d to bound overflow risk", RX_FIFO_DEPTH, MAX_FRAME_SIZE);
+    end
 
 endmodule

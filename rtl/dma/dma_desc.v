@@ -141,7 +141,10 @@ module dma_desc #(
     assign m_axi_arburst = 2'b01;           // INCR burst
     assign m_axi_arid    = 4'h0;
     
-    assign m_axi_awlen   = DESC_WORDS - 1;
+    // C6 fix: writeback is now always a single partial-strobe beat targeting
+    // only word1 (status/length), never the full 2-word descriptor, so the
+    // write burst is always 1 beat regardless of descriptor size.
+    assign m_axi_awlen   = 8'd0;
     assign m_axi_awsize  = $clog2(DATA_WIDTH/8);
     assign m_axi_awburst = 2'b01;
     assign m_axi_awid    = 4'h0;
@@ -215,8 +218,11 @@ module dma_desc #(
     wire [ADDR_WIDTH-1:0] tx_desc_addr = tx_ring_base + (tx_tail_ptr * DESC_SIZE);
     wire [ADDR_WIDTH-1:0] rx_desc_addr = rx_ring_base + (rx_head_ptr * DESC_SIZE);
     
-    wire [ADDR_WIDTH-1:0] tx_wb_addr = tx_ring_base + (tx_wb_idx_pending * DESC_SIZE);
-    wire [ADDR_WIDTH-1:0] rx_wb_addr = rx_ring_base + (rx_wb_idx_pending * DESC_SIZE);
+    // C6 fix: target word1 (the status/length half, offset +8) directly so
+    // word0 (buffer address) is never touched by a writeback.
+    localparam [ADDR_WIDTH-1:0] WB_WORD1_OFFSET = 8;
+    wire [ADDR_WIDTH-1:0] tx_wb_addr = tx_ring_base + (tx_wb_idx_pending * DESC_SIZE) + WB_WORD1_OFFSET;
+    wire [ADDR_WIDTH-1:0] rx_wb_addr = rx_ring_base + (rx_wb_idx_pending * DESC_SIZE) + WB_WORD1_OFFSET;
 
     //--------------------------------------------------------------------------
     // Main State Machine
@@ -268,6 +274,17 @@ module dma_desc #(
             if (m_axi_awready) m_axi_awvalid <= 1'b0;
             if (m_axi_wready && m_axi_wlast) m_axi_wvalid <= 1'b0;
             
+            // Descriptor consumed acknowledgment (folded in from the former
+            // standalone "Descriptor consumed acknowledgment" always block,
+            // which multiply-drove tx_desc_valid/rx_desc_valid alongside this
+            // FSM). When the TX/RX DMA engine accepts a descriptor, clear valid.
+            if (tx_desc_valid && tx_desc_ready) begin
+                tx_desc_valid <= 1'b0;
+            end
+            if (rx_desc_valid && rx_desc_ready) begin
+                rx_desc_valid <= 1'b0;
+            end
+
             // Capture writeback requests
             tx_wb_ready <= 1'b0;
             rx_wb_ready <= 1'b0;
@@ -307,35 +324,27 @@ module dma_desc #(
                 ST_IDLE: begin
                     // Priority: Writebacks > RX fetch > TX fetch
                     if (tx_wb_pending) begin
-                        // Prepare TX writeback
                         state <= ST_TX_WB_AW;
                         m_axi_awvalid <= 1'b1;
                         m_axi_awaddr  <= tx_wb_addr;
                         
-                        // Prepare writeback data (only update status word)
-                        // Status is at offset 12 in 16-byte descriptor
-                        if (DATA_WIDTH == 64) begin
-                            wb_buf[0] <= {16'd0, 16'd0, tx_wb_status_pending}; // Word 0: partial update
-                            wb_buf[1] <= {32'd0, tx_wb_status_pending};        // Word 1: status word
-                        end else begin
-                            wb_buf[0] <= tx_wb_status_pending;
-                        end
-                        wb_word_cnt <= 3'd0;
+                        // C6 fix: single-beat, partial-strobe write of word1 only (status,
+                        // bits[127:96]) -- word0 (address) and the reserved/length bytes of
+                        // word1 are protected by wstrb, not just left out of wb_buf.
+                        m_axi_wdata <= {tx_wb_status_pending, 32'd0};
+                        m_axi_wstrb <= 8'hF0;   // bytes 4-7 only (status)
+                        m_axi_wlast <= 1'b1;
                         
                     end else if (rx_wb_pending) begin
-                        // Prepare RX writeback
                         state <= ST_RX_WB_AW;
                         m_axi_awvalid <= 1'b1;
                         m_axi_awaddr  <= rx_wb_addr;
                         
-                        // RX writeback includes length and status
-                        if (DATA_WIDTH == 64) begin
-                            wb_buf[0] <= {rx_wb_status_pending, rx_wb_len_pending, 16'd0};
-                            wb_buf[1] <= {32'd0, rx_wb_status_pending};
-                        end else begin
-                            wb_buf[0] <= rx_wb_status_pending;
-                        end
-                        wb_word_cnt <= 3'd0;
+                        // C6 fix: single-beat write of word1 covering actual-length[31:16]
+                        // and status[63:32]; buffer-length bytes[15:0] and word0 preserved.
+                        m_axi_wdata <= {rx_wb_status_pending, rx_wb_len_pending, 16'd0};
+                        m_axi_wstrb <= 8'hFC;   // bytes 2-7 (length + status)
+                        m_axi_wlast <= 1'b1;
                         
                     end else if (rx_desc_avail && !rx_desc_valid) begin
                         // Fetch next RX descriptor
@@ -469,24 +478,16 @@ module dma_desc #(
                 ST_TX_WB_AW: begin
                     if (m_axi_awready) begin
                         state <= ST_TX_WB_W;
-                        m_axi_wvalid <= 1'b1;
-                        m_axi_wdata  <= wb_buf[0];
-                        m_axi_wstrb  <= {(DATA_WIDTH/8){1'b1}};
-                        m_axi_wlast  <= (DESC_WORDS == 1);
+                        m_axi_wvalid <= 1'b1;  // wdata/wstrb/wlast prepared in ST_IDLE
                     end
                 end
                 
                 ST_TX_WB_W: begin
                     if (m_axi_wready) begin
-                        if (m_axi_wlast) begin
-                            m_axi_wvalid <= 1'b0;
-                            m_axi_bready <= 1'b1;
-                            state <= ST_TX_WB_B;
-                        end else begin
-                            wb_word_cnt <= wb_word_cnt + 1;
-                            m_axi_wdata <= wb_buf[wb_word_cnt + 1];
-                            m_axi_wlast <= (wb_word_cnt + 1 == DESC_WORDS - 1);
-                        end
+                        // Always a single beat now (C6) -- no more multi-word loop.
+                        m_axi_wvalid <= 1'b0;
+                        m_axi_bready <= 1'b1;
+                        state <= ST_TX_WB_B;
                     end
                 end
                 
@@ -563,22 +564,6 @@ module dma_desc #(
                 
                 default: state <= ST_IDLE;
             endcase
-        end
-    end
-    
-    // Descriptor consumed acknowledgment
-    always @(posedge clk or negedge rst_n) begin
-        if (!rst_n) begin
-            // Nothing additional needed
-        end else begin
-            // When TX DMA accepts descriptor, it will trigger writeback
-            if (tx_desc_valid && tx_desc_ready) begin
-                tx_desc_valid <= 1'b0;
-            end
-            
-            if (rx_desc_valid && rx_desc_ready) begin
-                rx_desc_valid <= 1'b0;
-            end
         end
     end
 
