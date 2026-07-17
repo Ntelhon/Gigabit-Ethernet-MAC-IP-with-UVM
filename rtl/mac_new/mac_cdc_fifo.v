@@ -20,7 +20,7 @@
 //
 // Reset:
 //   - wr_rst_n / rd_rst_n are per-domain resets, asynchronous assert with
-//     synchronous de-assert (drive them from mac_rst_sync). Both domains must
+//     synchronous de-assert (drive them from rst_sync). Both domains must
 //     be reset together; releasing only one domain is not supported.
 //
 // Timing:

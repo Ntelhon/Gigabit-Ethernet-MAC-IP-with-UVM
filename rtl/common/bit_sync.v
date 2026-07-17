@@ -1,5 +1,5 @@
 //==============================================================================
-// Module: mac_bit_sync
+// Module: bit_sync
 // Description: Single-bit level synchronizer (one function: 2-FF CDC of a
 //              quasi-static level signal)
 //
@@ -18,7 +18,7 @@
 // License: MIT
 //==============================================================================
 
-module mac_bit_sync #(
+module bit_sync #(
     parameter STAGES = 2                // Synchronizer depth (>= 2)
 ) (
     input  wire clk,                    // Destination clock

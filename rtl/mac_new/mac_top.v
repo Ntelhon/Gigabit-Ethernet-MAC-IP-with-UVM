@@ -38,7 +38,7 @@
 //
 // Reset:
 //   - The three reset inputs are treated as ASYNCHRONOUS. Each is passed
-//     through a local mac_rst_sync instance, so every domain gets a reset
+//     through a local rst_sync instance, so every domain gets a reset
 //     with asynchronous assertion and synchronous, metastability-free
 //     de-assertion. The parent may therefore drive all three reset pins
 //     from one system reset without further synchronization.
@@ -174,19 +174,19 @@ module mac_top #(
     wire gtx_rst_sync_n;
     wire rxc_rst_sync_n;
 
-    mac_rst_sync u_sys_rst_sync (
+    rst_sync u_sys_rst_sync (
         .clk         (sys_clk),
         .async_rst_n (sys_rst_n),
         .rst_n       (sys_rst_sync_n)
     );
 
-    mac_rst_sync u_gtx_rst_sync (
+    rst_sync u_gtx_rst_sync (
         .clk         (gtx_clk),
         .async_rst_n (gtx_rst_n),
         .rst_n       (gtx_rst_sync_n)
     );
 
-    mac_rst_sync u_rxc_rst_sync (
+    rst_sync u_rxc_rst_sync (
         .clk         (rx_clk),
         .async_rst_n (rx_rst_n),
         .rst_n       (rxc_rst_sync_n)
@@ -280,14 +280,14 @@ module mac_top #(
     wire tx_enable_gtx;
     wire rx_enable_rxclk;
 
-    mac_bit_sync u_tx_enable_sync (
+    bit_sync u_tx_enable_sync (
         .clk   (gtx_clk),
         .rst_n (gtx_rst_sync_n),
         .d     (tx_enable),
         .q     (tx_enable_gtx)
     );
 
-    mac_bit_sync u_rx_enable_sync (
+    bit_sync u_rx_enable_sync (
         .clk   (rx_clk),
         .rst_n (rxc_rst_sync_n),
         .d     (rx_enable),
@@ -461,14 +461,14 @@ module mac_top #(
     wire tx_active_sys;
     wire rx_active_sys;
 
-    mac_bit_sync u_tx_active_sync (
+    bit_sync u_tx_active_sync (
         .clk   (sys_clk),
         .rst_n (sys_rst_sync_n),
         .d     (tx_active),
         .q     (tx_active_sys)
     );
 
-    mac_bit_sync u_rx_active_sync (
+    bit_sync u_rx_active_sync (
         .clk   (sys_clk),
         .rst_n (sys_rst_sync_n),
         .d     (rx_active_int),

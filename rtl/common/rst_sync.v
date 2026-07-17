@@ -1,5 +1,5 @@
 //==============================================================================
-// Module: mac_rst_sync
+// Module: rst_sync
 // Description: Reset synchronizer - asynchronous assertion, synchronous
 //              de-assertion (one function: reset synchronization)
 //
@@ -31,7 +31,7 @@
 // License: MIT
 //==============================================================================
 
-module mac_rst_sync #(
+module rst_sync #(
     parameter STAGES = 2                // Synchronizer depth (>= 2)
 ) (
     input  wire clk,                    // Destination clock domain

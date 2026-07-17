@@ -387,6 +387,19 @@ module eth_controller_top #(
     //==========================================================================
     generate
         if (DMA_ENABLE) begin : gen_dma
+
+            //------------------------------------------------------------------
+            // Reset synchronizer for the DMA sys_clk domain
+            // (async assert, sync de-assert). dma_top takes an asynchronous
+            // rst_n and does NOT synchronize it internally, so give its flops
+            // a clean, metastability-free reset release here.
+            //------------------------------------------------------------------
+            wire dma_rst_sync_n;
+            rst_sync u_dma_rst_sync (
+                .clk         (sys_clk),
+                .async_rst_n (sys_rst_n),
+                .rst_n       (dma_rst_sync_n)
+            );
             
             dma_top #(
                 .ADDR_WIDTH     (DMA_ADDR_WIDTH),
@@ -397,26 +410,26 @@ module eth_controller_top #(
                 .RX_FIFO_DEPTH  (DMA_RX_FIFO_DEPTH)
             ) u_dma (
                 .clk            (sys_clk),
-                .rst_n          (sys_rst_n),
+                .rst_n          (dma_rst_sync_n),
                 
                 // AXI-Lite registers
-                .s_axi_awvalid  (dma_reg_awvalid),
-                .s_axi_awready  (dma_reg_awready),
-                .s_axi_awaddr   (dma_reg_awaddr),
-                .s_axi_wvalid   (dma_reg_wvalid),
-                .s_axi_wready   (dma_reg_wready),
-                .s_axi_wdata    (dma_reg_wdata),
-                .s_axi_wstrb    (dma_reg_wstrb),
-                .s_axi_bvalid   (dma_reg_bvalid),
-                .s_axi_bready   (dma_reg_bready),
-                .s_axi_bresp    (dma_reg_bresp),
-                .s_axi_arvalid  (dma_reg_arvalid),
-                .s_axi_arready  (dma_reg_arready),
-                .s_axi_araddr   (dma_reg_araddr),
-                .s_axi_rvalid   (dma_reg_rvalid),
-                .s_axi_rready   (dma_reg_rready),
-                .s_axi_rdata    (dma_reg_rdata),
-                .s_axi_rresp    (dma_reg_rresp),
+                .s_axil_awvalid  (dma_reg_awvalid),
+                .s_axil_awready  (dma_reg_awready),
+                .s_axil_awaddr   (dma_reg_awaddr),
+                .s_axil_wvalid   (dma_reg_wvalid),
+                .s_axil_wready   (dma_reg_wready),
+                .s_axil_wdata    (dma_reg_wdata),
+                .s_axil_wstrb    (dma_reg_wstrb),
+                .s_axil_bvalid   (dma_reg_bvalid),
+                .s_axil_bready   (dma_reg_bready),
+                .s_axil_bresp    (dma_reg_bresp),
+                .s_axil_arvalid  (dma_reg_arvalid),
+                .s_axil_arready  (dma_reg_arready),
+                .s_axil_araddr   (dma_reg_araddr),
+                .s_axil_rvalid   (dma_reg_rvalid),
+                .s_axil_rready   (dma_reg_rready),
+                .s_axil_rdata    (dma_reg_rdata),
+                .s_axil_rresp    (dma_reg_rresp),
                 
                 // AXI4 Master
                 .m_axi_awvalid  (m_axi_awvalid),

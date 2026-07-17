@@ -196,11 +196,23 @@ module eth_controller_regs #(
     reg                     rd_addr_valid;
     reg                     rd_ar_done;      // Address handshake completed
     reg [TIMEOUT_WIDTH-1:0] rd_timeout_cnt;
+
+    //==========================================================================
+    // Reset Synchronizer (async assert, sync de-assert) for the sys_clk domain
+    // rst_n arrives asynchronously from the controller top; synchronize its
+    // release so all register-block flops leave reset on a clean clock edge.
+    //==========================================================================
+    wire rst_sync_n;
+    rst_sync u_rst_sync (
+        .clk         (clk),
+        .async_rst_n (rst_n),
+        .rst_n       (rst_sync_n)
+    );
     //==========================================================================
     // Write Transaction Handler
     //==========================================================================
-    always @(posedge clk or negedge rst_n) begin
-        if (!rst_n) begin
+    always @(posedge clk or negedge rst_sync_n) begin
+        if (!rst_sync_n) begin
             // State and control
             wr_state        <= W_IDLE;
             wr_addr_valid   <= 1'b0;
@@ -507,8 +519,8 @@ module eth_controller_regs #(
     //==========================================================================
     // Read Transaction Handler
     //==========================================================================
-    always @(posedge clk or negedge rst_n) begin
-        if (!rst_n) begin
+    always @(posedge clk or negedge rst_sync_n) begin
+        if (!rst_sync_n) begin
             // State and control
             rd_state        <= R_IDLE;
             rd_addr_valid   <= 1'b0;

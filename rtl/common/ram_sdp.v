@@ -1,11 +1,11 @@
 //==============================================================================
-// File: dma_ram_sdp.v
+// File: ram_sdp.v
 // Description: Simple Dual-Port RAM (technology swap point)
 //
 // Purpose:
-//   The ONLY memory primitive in the DMA subsystem. All FIFO storage is
-//   implemented through this module. For FPGA flows the array below infers
-//   block/distributed RAM; for ASIC flows replace this file with a memory
+//   All FIFO storage is implemented through this module. 
+//   For FPGA flows the array below infers block/distributed RAM;
+//   for ASIC flows replace this file with a memory
 //   compiler wrapper exposing the identical port list.
 //
 // Key properties (intentional, do not "fix"):
@@ -25,7 +25,7 @@
 // License: MIT
 //==============================================================================
 
-module dma_ram_sdp #(
+module ram_sdp #(
     parameter DATA_W  = 8,
     parameter DEPTH   = 2048,
     parameter ADDR_W  = $clog2(DEPTH),

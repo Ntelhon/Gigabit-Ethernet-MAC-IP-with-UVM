@@ -5,10 +5,10 @@
 // Purpose:
 //   Single-clock FIFO used for the TX/RX data paths and packet-metadata
 //   queues. Contains ONLY pointer/flag logic; the storage array is an
-//   instantiated dma_ram_sdp so ASIC flows can swap the memory.
+//   instantiated ram_sdp so ASIC flows can swap the memory.
 //
 // Read interface: FIRST-WORD-FALL-THROUGH (FWFT).
-//   Because dma_ram_sdp has synchronous (1-cycle) read, a small prefetch
+//   Because ram_sdp has synchronous (1-cycle) read, a small prefetch
 //   stage ('pending'/'hold' flags) keeps rd_data valid whenever empty == 0.
 //   rd_en pops the presented word in the same cycle. Sustains 1 word/cycle.
 //
@@ -175,7 +175,7 @@ module dma_fifo #(
     //--------------------------------------------------------------------------
     // Storage (the ONLY memory in the FIFO)
     //--------------------------------------------------------------------------
-    dma_ram_sdp #(
+    ram_sdp #(
         .DATA_W  (DATA_W),
         .DEPTH   (DEPTH),
         .ADDR_W  (ADDR_W),
